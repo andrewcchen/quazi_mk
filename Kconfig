@@ -1,0 +1,55 @@
+# Copyright (c) 2020 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+mainmenu "QuaziMK Firmware"
+
+menu "QuaziMK Configuration"
+
+config QUAZI_BLE
+	bool "BLE (HID over GATT)"
+	select BT
+	select BT_SMP
+#	select BT_SMP_SC_PAIR_ONLY
+	select BT_SMP_APP_PAIRING_ACCEPT
+	select BT_PERIPHERAL
+	select BT_DIS
+	select BT_BAS
+	select BT_SETTINGS
+	select SETTINGS
+
+if QUAZI_BLE
+
+config SYSTEM_WORKQUEUE_STACK_SIZE
+	default 2048
+
+config ZMK_BLE_CLEAR_BONDS_ON_START
+	bool "Configuration that clears all bond information from the keyboard on startup."
+	default n
+
+# HID GATT notifications sent this way are *not* picked up by Linux, and possibly others.
+config BT_GATT_NOTIFY_MULTIPLE
+	default n
+
+config BT_DEVICE_APPEARANCE
+	default 961
+
+config ZMK_BLE_PASSKEY_ENTRY
+	bool "Experimental: Requiring typing passkey from host to pair BLE connection"
+	default n
+
+#QUAZI_BLE
+endif
+
+module = QUAZI
+module-str = QuaziMK
+source "subsys/logging/Kconfig.template.log_config"
+
+#QuaziMK Configuration
+endmenu
+
+menu "Zephyr Kernel Configuration"
+
+source "Kconfig.zephyr"
+
+#Zephyr Kernel Configuration
+endmenu

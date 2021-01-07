@@ -1,0 +1,113 @@
+/*
+ * Copyright (c) 2017 Shawn Nock <shawn@monadnock.ca>
+ * Copyright (c) 2017 Linaro Limited
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <nordic/nrf52832_qfaa.dtsi>
+
+/ {
+	model = "BLU60";
+	compatible = "andrew,blu60";
+
+	matrix: matrix {
+		compatible = "quazi,matrix";
+		row-gpios = <&gpio0 6  0>,
+		            <&gpio0 7  0>,
+		            <&gpio0 8  0>,
+		            <&gpio0 5  0>,
+		            <&gpio0 21 0>;
+		col-gpios = <&gpio0 26 0>,
+		            <&gpio0 27 0>,
+		            <&gpio0 28 0>,
+		            <&gpio0 29 0>,
+		            <&gpio0 4  0>,
+		            <&gpio0 20 0>,
+		            <&gpio0 17 0>,
+		            <&gpio0 19 0>,
+		            <&gpio0 14 0>,
+		            <&gpio0 16 0>,
+		            <&gpio0 9  0>,
+		            <&gpio0 10 0>,
+		            <&gpio0 11 0>,
+		            <&gpio0 12 0>;
+	};
+
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+		zephyr,uart-mcumgr = &uart0;
+		zephyr,bt-mon-uart = &uart0;
+		zephyr,bt-c2h-uart = &uart0;
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led0: led_0 {
+			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+			label = "CAPS LED";
+		};
+	};
+
+	aliases {
+		led0 = &led0;
+	};
+};
+
+&adc {
+	status = "okay";
+};
+
+//&gpiote {
+//	status = "okay";
+//};
+
+&gpio0 {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+	compatible = "nordic,nrf-uarte";
+	current-speed = <1000000>;
+	rx-pin = <23>;
+	tx-pin = <22>;
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0xc000>;
+		};
+		slot0_partition: partition@c000 {
+			label = "image-0";
+			reg = <0x0000C000 0x32000>;
+		};
+		slot1_partition: partition@3e000 {
+			label = "image-1";
+			reg = <0x0003E000 0x32000>;
+		};
+		scratch_partition: partition@70000 {
+			label = "image-scratch";
+			reg = <0x00070000 0xa000>;
+		};
+		storage_partition: partition@7a000 {
+			label = "storage";
+			reg = <0x0007a000 0x00006000>;
+		};
+	};
+};
+
+&flash_controller {
+	status = "okay";
+};

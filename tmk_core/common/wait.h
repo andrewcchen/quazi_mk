@@ -35,7 +35,7 @@ extern "C" {
 #    define wait_us(us) CLK_delay_us(us)
 #else  // Unit tests
 void wait_ms(uint32_t ms);
-#    define wait_us(us) wait_ms(us / 1000)
+void wait_us(uint32_t us);
 #endif
 
 #ifdef __cplusplus
