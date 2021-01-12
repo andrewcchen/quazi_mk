@@ -23,6 +23,8 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
+#include "host.h"
+
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 enum {
@@ -84,6 +86,7 @@ static uint8_t report_map[] = {
 	0xC0,              // End Collection
 };
 
+static uint8_t report[7];
 
 static ssize_t read_info(struct bt_conn *conn,
 			  const struct bt_gatt_attr *attr, void *buf,
@@ -97,7 +100,7 @@ static ssize_t read_report_map(struct bt_conn *conn,
 			       const struct bt_gatt_attr *attr, void *buf,
 			       uint16_t len, uint16_t offset)
 {
-	LOG_DBG("read_report_map");
+	LOG_DBG("");
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, report_map,
 				 sizeof(report_map));
@@ -107,7 +110,7 @@ static ssize_t read_report(struct bt_conn *conn,
 			   const struct bt_gatt_attr *attr, void *buf,
 			   uint16_t len, uint16_t offset)
 {
-	LOG_DBG("read_report");
+	LOG_DBG("");
 
 	return bt_gatt_attr_read(conn, attr, buf, len, offset, attr->user_data,
 				 sizeof(struct hids_report));
@@ -115,6 +118,8 @@ static ssize_t read_report(struct bt_conn *conn,
 
 static void input_ccc_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
+	LOG_DBG("%d", value);
+
 	simulate_input = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
@@ -122,7 +127,9 @@ static ssize_t read_input_report(struct bt_conn *conn,
 				 const struct bt_gatt_attr *attr, void *buf,
 				 uint16_t len, uint16_t offset)
 {
-	return bt_gatt_attr_read(conn, attr, buf, len, offset, NULL, 0);
+	LOG_DBG("");
+
+	return bt_gatt_attr_read(conn, attr, buf, len, offset, report, sizeof(report));
 }
 
 static ssize_t write_ctrl_point(struct bt_conn *conn,
@@ -130,6 +137,8 @@ static ssize_t write_ctrl_point(struct bt_conn *conn,
 				const void *buf, uint16_t len, uint16_t offset,
 				uint8_t flags)
 {
+	LOG_HEXDUMP_DBG(buf, len, "write_ctrl_point");
+
 	uint8_t *value = attr->user_data;
 
 	if (offset + len > sizeof(ctrl_point)) {
@@ -142,7 +151,6 @@ static ssize_t write_ctrl_point(struct bt_conn *conn,
 }
 
 /* HID Service Declaration */
-/*
 BT_GATT_SERVICE_DEFINE(hog_svc,
 	BT_GATT_PRIMARY_SERVICE(BT_UUID_HIDS),
 	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_INFO, BT_GATT_CHRC_READ,
@@ -151,10 +159,10 @@ BT_GATT_SERVICE_DEFINE(hog_svc,
 			       BT_GATT_PERM_READ, read_report_map, NULL, NULL),
 	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
-			       BT_GATT_PERM_READ_AUTHEN,
+			       BT_GATT_PERM_READ_ENCRYPT,
 			       read_input_report, NULL, NULL),
 	BT_GATT_CCC(input_ccc_changed,
-		    BT_GATT_PERM_READ_AUTHEN | BT_GATT_PERM_WRITE_AUTHEN),
+		    BT_GATT_PERM_READ_ENCRYPT | BT_GATT_PERM_WRITE_ENCRYPT),
 	BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ,
 			   read_report, NULL, &input),
 	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_CTRL_POINT,
@@ -162,8 +170,69 @@ BT_GATT_SERVICE_DEFINE(hog_svc,
 			       BT_GATT_PERM_WRITE,
 			       NULL, write_ctrl_point, &ctrl_point),
 );
-*/
 
-void hog_init(void)
-{
+
+//struct bt_conn *hog_current_conn;
+static struct bt_conn *current_conn;
+
+static void connected(struct bt_conn *conn, uint8_t err) {
+	LOG_DBG("hog connected");
+	if (!err) {
+		bt_conn_ref(conn);
+		current_conn = conn;
+	}
+}
+
+static void disconnected(struct bt_conn *conn, uint8_t reason) {
+	LOG_DBG("hog disconnected");
+	bt_conn_unref(current_conn);
+	current_conn = NULL;
+}
+
+static struct bt_conn_cb conn_callbacks = {
+	.connected = connected,
+	.disconnected = disconnected,
+};
+
+static uint8_t keyboard_leds(void) {
+	return 0;
+}
+
+static void send_keyboard(report_keyboard_t *r) {
+	report[0] = r->mods;
+	report[1] = r->keys[0];
+	report[2] = r->keys[1];
+	report[3] = r->keys[2];
+	report[4] = r->keys[3];
+	report[5] = r->keys[4];
+	report[6] = r->keys[5];
+
+	//LOG_HEXDUMP_DBG(report, sizeof(report), "send_keyboard");
+
+	if (current_conn) {
+		int err = bt_gatt_notify(current_conn, &hog_svc.attrs[6], report, sizeof(report));
+		if (err) {
+			LOG_WRN("bt_gatt_notify failed (%d)", err);
+		}
+	}
+}
+
+// void send_mouse(report_mouse_t *);
+
+static void send_system(uint16_t data) {
+}
+
+static void send_consumer(uint16_t data) {
+}
+
+static host_driver_t host_driver = {
+	.keyboard_leds = keyboard_leds,
+	.send_keyboard = send_keyboard,
+	.send_system = send_system,
+	.send_consumer = send_consumer,
+};
+
+void quazi_hog_init(void) {
+	bt_conn_cb_register(&conn_callbacks);
+	host_set_driver(&host_driver);
 }

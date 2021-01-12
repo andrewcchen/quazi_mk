@@ -22,6 +22,8 @@
 
 #include <logging/log.h>
 
+void quazi_hog_init(void);
+
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 //#include "hog.h"
@@ -32,6 +34,8 @@ static const struct bt_data ad[] = {
 		      BT_UUID_16_ENCODE(BT_UUID_HIDS_VAL),
 		      BT_UUID_16_ENCODE(BT_UUID_BAS_VAL)),
 };
+
+extern struct bt_conn *hog_current_conn;
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -53,6 +57,9 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	if (bt_conn_set_security(conn, BT_SECURITY_L2)) {
 		LOG_ERR("Failed to set security");
 	}
+
+	//bt_conn_ref(conn);
+	//hog_current_conn = conn;
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -68,6 +75,9 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 		LOG_ERR("Advertising failed to start (err %d)", err);
 		return;
 	}
+
+	//bt_conn_unref(hog_current_conn);
+	//hog_current_conn = NULL;
 }
 
 static void security_changed(struct bt_conn *conn, bt_security_t level,
@@ -81,6 +91,8 @@ static void security_changed(struct bt_conn *conn, bt_security_t level,
 		LOG_INF("Security changed: %s level %u", log_strdup(addr), level);
 	} else {
 		LOG_ERR("Security failed: %s level %u err %d", log_strdup(addr), level, err);
+		LOG_INF("Disconnecting.");
+		bt_conn_disconnect(conn, BT_HCI_ERR_AUTH_FAIL);
 	}
 }
 
@@ -99,10 +111,22 @@ static void bt_ready(int err)
 
 	LOG_INF("Bluetooth initialized");
 
-	hog_init();
+	quazi_hog_init();
 
 	if (IS_ENABLED(CONFIG_SETTINGS)) {
 		settings_load();
+
+    	bt_unpair(BT_ID_DEFAULT, NULL);
+
+    	for (int i = 0; i < CONFIG_BT_MAX_PAIRED; i++) {
+    	    char setting_name[16];
+    	    sprintf(setting_name, "ble/profiles/%d", i);
+
+    	    err = settings_delete(setting_name);
+    	    if (err) {
+    	        LOG_ERR("Failed to delete setting: %d", err);
+    	    }
+    	}
 	}
 
 	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
@@ -123,6 +147,17 @@ static void auth_passkey_display(struct bt_conn *conn, unsigned int passkey)
 	LOG_INF("Passkey for %s: %06u", log_strdup(addr), passkey);
 }
 
+static void auth_passkey_entry(struct bt_conn *conn)
+{
+	char addr[BT_ADDR_LE_STR_LEN];
+
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+	LOG_INF("Passkey entry for %s", log_strdup(addr));
+
+	bt_conn_auth_passkey_entry(conn, 1);
+}
+
 static void auth_cancel(struct bt_conn *conn)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
@@ -140,12 +175,13 @@ static void pairing_complete(struct bt_conn *conn, bool bonded)
 static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
 {
 	LOG_INF("Pairing Failed (%d). Disconnecting.", reason);
+
 	bt_conn_disconnect(conn, BT_HCI_ERR_AUTH_FAIL);
 }
 
 static struct bt_conn_auth_cb auth_cb_display = {
-	.passkey_display = auth_passkey_display,
-	.passkey_entry = NULL,
+//	.passkey_display = auth_passkey_display,
+//	.passkey_entry = auth_passkey_entry,
 	.cancel = auth_cancel,
 	.pairing_complete = pairing_complete,
 	.pairing_failed = pairing_failed,

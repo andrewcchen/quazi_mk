@@ -25,9 +25,9 @@ void main(void) {
 
 	LOG_DBG("init done");
 
-	//while (1) {
-	//	keyboard_task();
+	while (1) {
+		keyboard_task();
 
-	//	k_sleep(K_MSEC(10));
-	//}
+		k_sleep(K_MSEC(10));
+	}
 }
