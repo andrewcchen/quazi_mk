@@ -334,4 +334,6 @@
 
 #define API_SYSEX_MAX_SIZE 32
 
-#include "song_list.h"
+#ifdef AUDIO_ENABLE
+    #include "song_list.h"
+#endif

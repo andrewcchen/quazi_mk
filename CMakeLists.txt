@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.13.1)
 
+set(CMAKE_C_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "Flags used by the C compiler during DEBUG builds.")
+set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "Flags used by the CXX compiler during DEBUG builds.")
+
 if (NOT DEFINED ZEPHYR_TOOLCHAIN_VARIANT)
 	set(ZEPHYR_TOOLCHAIN_VARIANT gnuarmemb)
 endif()
@@ -12,7 +15,7 @@ if (NOT DEFINED BOARD)
 	set(BOARD blu60)
 endif()
 
-list(APPEND CFLAGS "-Wstrict-prototypes")
+#list(APPEND CMAKE_C_FLAGS "-Wstrict-prototypes")
 
 list(APPEND BOARD_ROOT ${CMAKE_SOURCE_DIR})
 
@@ -29,16 +32,20 @@ find_package(Zephyr REQUIRED HINTS lib/zephyr)
 
 project(quazi_mk)
 
-add_subdirectory(${BOARD_DIR})
-add_subdirectory(quazi)
-add_subdirectory(quantum)
-add_subdirectory(tmk_core)
+# Zephyr calls add_subdirectory(${BOARD_DIR})
 
-target_include_directories(app PRIVATE drivers)
-target_sources(app PRIVATE
-	drivers/eeprom/eeprom_driver.c
-	drivers/eeprom/eeprom_transient.c
-)
+zephyr_library_named(qmk)
+include(qmk.cmake)
+
+zephyr_library_named(quazi)
+add_subdirectory(quazi)
+
+# CMake doesn't like targets with no sources
+target_sources(app PRIVATE quazi/null.c)
+
+target_link_libraries(qmk PRIVATE quazi)
+target_link_libraries(quazi PRIVATE qmk)
+target_link_libraries(app PRIVATE qmk quazi)
 
 add_definitions(-Dxprintf=printf -Dprint=printf)
 add_definitions(-DMATRIX_ROWS=5 -DMATRIX_COLS=14)
