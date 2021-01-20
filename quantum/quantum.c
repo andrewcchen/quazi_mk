@@ -17,6 +17,8 @@
 #include <ctype.h>
 #include "quantum.h"
 
+#include "process_bluetooth.h"
+
 #ifdef BLUETOOTH_ENABLE
 #    include "outputselect.h"
 #endif
@@ -280,6 +282,8 @@ bool process_record_quantum(keyrecord_t *record) {
 #ifdef JOYSTICK_ENABLE
             process_joystick(keycode, record) &&
 #endif
+            process_bluetooth(keycode, record) &&
+            process_bluetooth_passkey(keycode, record) &&
             true)) {
         return false;
     }

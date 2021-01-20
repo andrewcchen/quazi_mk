@@ -444,9 +444,22 @@ enum quantum_keycodes {
     // output selection
     OUT_AUTO,
     OUT_USB,
-#ifdef BLUETOOTH_ENABLE
     OUT_BT,
-#endif
+
+    // bluetooth
+    BT_CLEAR,
+    BT_NEXT,
+    BT_PREV,
+    BT_0,
+    BT_1,
+    BT_2,
+    BT_3,
+    BT_4,
+    BT_5,
+    BT_6,
+    BT_7,
+    BT_8,
+    BT_9,
 
 #ifdef KEY_LOCK_ENABLE
     KC_LOCK,

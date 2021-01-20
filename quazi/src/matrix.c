@@ -7,7 +7,7 @@
 
 #include "matrix.h"
 
-LOG_MODULE_DECLARE(quazi);
+LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 #define MATRIX_NODE DT_NODELABEL(matrix)
 

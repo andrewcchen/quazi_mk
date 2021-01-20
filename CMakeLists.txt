@@ -27,6 +27,12 @@ list(APPEND ZEPHYR_MODULES
 	${CMAKE_SOURCE_DIR}/lib/hal_nordic
 )
 
+list(APPEND CONF_FILE ${CMAKE_SOURCE_DIR}/quazi/prj.conf)
+
+if (EXISTS ${CMAKE_SOURCE_DIR}/prj.conf)
+	list(APPEND CONF_FILE ${CMAKE_SOURCE_DIR}/prj.conf)
+endif()
+
 # Find Zephyr. This also loads Zephyr's build system.
 find_package(Zephyr REQUIRED HINTS lib/zephyr)
 
@@ -43,7 +49,7 @@ add_subdirectory(quazi)
 # CMake doesn't like targets with no sources
 target_sources(app PRIVATE quazi/null.c)
 
-target_link_libraries(qmk PRIVATE quazi)
+#target_link_libraries(qmk PRIVATE quazi)
 target_link_libraries(quazi PRIVATE qmk)
 target_link_libraries(app PRIVATE qmk quazi)
 

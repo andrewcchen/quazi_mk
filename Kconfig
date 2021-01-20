@@ -7,6 +7,7 @@ menu "QuaziMK Configuration"
 
 config QUAZI_BLE
 	bool "BLE (HID over GATT)"
+	default y
 	select BT
 	select BT_SMP
 #	select BT_SMP_SC_PAIR_ONLY
