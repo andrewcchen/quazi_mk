@@ -11,13 +11,11 @@
 #include <settings/settings.h>
 
 #include "profile.h"
+#include "ble.h"
 #include "quazi.h"
-
-#include "keyboard.h"
+#include "qmk_glue.h"
 
 LOG_MODULE_REGISTER(quazi, CONFIG_QUAZI_LOG_LEVEL);
-
-void quazi_ble_init(void);
 
 void quazi_main(void) {
 	LOG_INF("QuaziMK Start");
@@ -25,16 +23,12 @@ void quazi_main(void) {
 	//settings_load();
 
 	quazi_ble_init();
-	quazi_profile_init();
-
-	keyboard_setup();
-
-	keyboard_init();
+	quazi_qmk_init();
 
 	LOG_DBG("init done");
 
 	while (1) {
-		keyboard_task();
+		quazi_qmk_task();
 
 		k_sleep(K_MSEC(10));
 	}

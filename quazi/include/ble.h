@@ -6,9 +6,14 @@
 
 #pragma once
 
+extern struct bt_conn *quazi_ble_conn;
+
+void quazi_ble_init(void);
+
 //void quazi_ble_adv_start();
-void quazi_ble_disconnect();
+void quazi_ble_disconnect(void);
 void quazi_ble_connect(int identity);
 void quazi_ble_pair(int identity);
 void quazi_ble_clear(int identity);
 void quazi_ble_passkey_digit(int digit);
+struct bt_conn *quazi_ble_get_conn();

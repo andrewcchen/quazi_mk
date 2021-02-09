@@ -23,13 +23,11 @@
 
 #include <logging/log.h>
 
-void quazi_hog_init(void);
+#include "hog.h"
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 // TODO performance all functions on a workqueue to avoid threading issues
-
-//#include "hog.h"
 
 enum advertising_state_machine {
 	ADV_DISABLED,
@@ -44,7 +42,7 @@ static int selected_identity;
 static int passkey_digits_left;
 static int passkey_entered;
 
-struct bt_conn *active_conn;
+struct bt_conn *quazi_ble_conn;
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -68,7 +66,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	}
 	
 	bt_conn_ref(conn);
-	active_conn = conn;
+	quazi_ble_conn = conn;
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -81,8 +79,8 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 	// TODO start advertising if not intentional disconnect
 	
-	if (active_conn == conn) {
-		active_conn = NULL;
+	if (quazi_ble_conn == conn) {
+		quazi_ble_conn = NULL;
 		bt_conn_unref(conn);
 	}
 }
@@ -304,13 +302,13 @@ void quazi_ble_clear(int identity) {
 }
 
 void quazi_ble_passkey_digit(int digit) {
-	if (active_conn && passkey_digits_left > 0) {
+	if (quazi_ble_conn && passkey_digits_left > 0) {
 		passkey_digits_left--;
 		passkey_entered = passkey_entered * 10 + digit;
 
 		if (passkey_digits_left == 0) {
 			LOG_INF("Passkey: %06d", passkey_entered);
-			bt_conn_auth_passkey_entry(active_conn, passkey_entered);
+			bt_conn_auth_passkey_entry(quazi_ble_conn, passkey_entered);
 			passkey_entered = 0;
 		}
 	}

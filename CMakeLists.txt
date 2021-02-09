@@ -43,15 +43,17 @@ project(quazi_mk)
 zephyr_library_named(qmk)
 include(qmk.cmake)
 
+zephyr_library_named(glue)
 zephyr_library_named(quazi)
 add_subdirectory(quazi)
 
 # CMake doesn't like targets with no sources
-target_sources(app PRIVATE quazi/null.c)
+target_sources(app PRIVATE quazi/src/null.c)
 
-#target_link_libraries(qmk PRIVATE quazi)
-target_link_libraries(quazi PRIVATE qmk)
-target_link_libraries(app PRIVATE qmk quazi)
+target_link_libraries(glue PRIVATE qmk quazi)
+target_link_libraries(qmk PRIVATE glue)
+target_link_libraries(quazi PRIVATE glue)
+target_link_libraries(app PRIVATE quazi qmk)
 
 add_definitions(-Dxprintf=printf -Dprint=printf)
 add_definitions(-DMATRIX_ROWS=5 -DMATRIX_COLS=14)
