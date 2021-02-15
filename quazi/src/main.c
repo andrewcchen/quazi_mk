@@ -6,6 +6,7 @@
 
 #include "quazi.h"
 
-void main(void) {
+void main(void)
+{
 	quazi_main();
 }

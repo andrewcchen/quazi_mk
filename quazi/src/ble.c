@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2021 Andrew Chen <andrew@xortux.com>
+ *
+ * SPDX-License-Identifier: MIT
+ *
  * Copyright (c) 2016 Intel Corporation
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -174,7 +178,8 @@ void quazi_ble_init(void)
 	bt_conn_auth_cb_register(&auth_cb_display);
 }
 
-static void get_bonded_addr_helper(const struct bt_bond_info *info, void *data) {
+static void get_bonded_addr_helper(const struct bt_bond_info *info, void *data)
+{
 	const bt_addr_le_t **ppaddr = data;
 	if (*ppaddr != NULL) {
 		LOG_WRN("Multiple bonds stored for identity");
@@ -182,7 +187,8 @@ static void get_bonded_addr_helper(const struct bt_bond_info *info, void *data) 
 	*ppaddr = &info->addr;
 }
 
-static bt_addr_le_t *get_bonded_addr(int identity) {
+static bt_addr_le_t *get_bonded_addr(int identity)
+{
 	bt_addr_le_t *paddr = NULL;
 	bt_foreach_bond(identity, get_bonded_addr_helper, &paddr);
 	if (paddr != NULL) {
@@ -221,7 +227,8 @@ static void update_advertising(void) {
 //			0, 0, peer);
 //}
 
-static void start_pairing_advertising() {
+static void start_pairing_advertising()
+{
 	// fast undirected advertising, 30-60ms interval
 	struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
 			BT_LE_ADV_OPT_CONNECTABLE | //BT_LE_ADV_OPT_ONE_TIME |
@@ -250,7 +257,8 @@ static void start_pairing_advertising() {
 	}
 }*/
 
-static void disconnect_conn(struct bt_conn *conn, void *data) {
+static void disconnect_conn(struct bt_conn *conn, void *data)
+{
 	(void)data;
 
 	char addr[BT_ADDR_LE_STR_LEN];
@@ -262,12 +270,14 @@ static void disconnect_conn(struct bt_conn *conn, void *data) {
 	}
 }
 
-void quazi_ble_disconnect(void) {
+void quazi_ble_disconnect(void)
+{
 	bt_conn_foreach(BT_CONN_TYPE_ALL, disconnect_conn, NULL);
 	bt_le_adv_stop();
 }
 
-void quazi_ble_connect(int identity) {
+void quazi_ble_connect(int identity)
+{
 	LOG_DBG("connect id %d", identity);
 
 	//if (selected_identity == identity)

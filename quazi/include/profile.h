@@ -6,11 +6,11 @@
 
 #pragma once
 
-int quazi_profile_init(void);
+void quazi_profile_init(void);
 
 void quazi_profile_select(int profile);
 int quazi_profile_selected(void);
 
-void quazi_profile_pair(int profile);
-
-void quazi_profile_clear_selected(void);
+void quazi_profile_pair(void);
+void quazi_profile_connect(void);
+void quazi_profile_clear(void);

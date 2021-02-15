@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2021 Andrew Chen <andrew@xortux.com>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 #include "qmk_glue.h"
 
 #include "keyboard.h"

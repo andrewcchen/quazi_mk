@@ -10,8 +10,6 @@ target_sources(quazi PRIVATE
 	src/matrix_scan.c
 )
 
-target_sources(app PRIVATE src/main.c)
-
 target_include_directories(glue PRIVATE
 	include
 )
@@ -28,4 +26,8 @@ target_sources(glue PRIVATE
 
 target_include_directories(qmk PUBLIC
 	qmk_include
+)
+
+target_sources(app PRIVATE
+	src/main.c
 )

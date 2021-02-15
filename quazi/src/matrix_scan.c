@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2021 Andrew Chen <andrew@xortux.com>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 #include <zephyr.h>
 #include <device.h>
 #include <devicetree.h>
@@ -29,7 +35,8 @@ static const gpio_flags_t row_flags[MATRIX_ROWS] =
 static const gpio_flags_t col_flags[MATRIX_COLS] = 
 	{ UTIL_LISTIFY(MATRIX_COLS, MATRIX_GPIO_FLAGS_LIST, col) };
 
-void quazi_matrix_scan_init(void) {
+void quazi_matrix_scan_init(void)
+{
 	int ret;
 
 #define MATRIX_GPIO_PORT_SET(i, row_or_col) \
@@ -53,9 +60,8 @@ void quazi_matrix_scan_init(void) {
 }
 
 // TODO debounce
-uint32_t quazi_matrix_scan_row(int row) {
-	__ASSERT(row < MATRIX_ROWS, "");
-
+uint32_t quazi_matrix_scan_row(int row)
+{
 	uint32_t r = 0;
 
 	gpio_pin_set(row_port[row], row_pin[row], 1);

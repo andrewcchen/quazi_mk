@@ -16,7 +16,8 @@ LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 #define QUAZI_BT_TAP_TIME 1000
 
-bool process_bluetooth(uint16_t keycode, keyrecord_t *record) {
+bool process_bluetooth(uint16_t keycode, keyrecord_t *record)
+{
 	// key press times
 	static uint16_t clear_time;
 	static uint16_t profile_times[CONFIG_BT_ID_MAX];
@@ -36,7 +37,7 @@ bool process_bluetooth(uint16_t keycode, keyrecord_t *record) {
 		if (keycode == BT_CLEAR) {
 			uint16_t diff = time - clear_time;
 			if (diff >= QUAZI_BT_TAP_TIME) {
-				quazi_profile_clear_selected();
+				quazi_profile_clear();
 			}
 			return false;
 		} else if (keycode == BT_NEXT) {
@@ -45,11 +46,13 @@ bool process_bluetooth(uint16_t keycode, keyrecord_t *record) {
 			return false;
 		} else if (keycode >= BT_0 && profile < CONFIG_BT_ID_MAX) {
 			uint16_t diff = time - profile_times[profile];
-			if (diff >= QUAZI_BT_TAP_TIME) {
-				quazi_profile_pair(profile);
-			} else {
-				quazi_profile_select(profile);
-			}
+
+			quazi_profile_select(profile);
+
+			if (diff >= QUAZI_BT_TAP_TIME)
+				quazi_profile_pair();
+			else
+				quazi_profile_connect();
 
 		} else if (keycode == OUT_AUTO) {
 			return false;
@@ -63,7 +66,8 @@ bool process_bluetooth(uint16_t keycode, keyrecord_t *record) {
 	return true;
 }
 
-bool process_bluetooth_passkey(uint16_t keycode, keyrecord_t *record) {
+bool process_bluetooth_passkey(uint16_t keycode, keyrecord_t *record)
+{
 	if (record->event.pressed) {
 		if (keycode == KC_0) {
 			quazi_ble_passkey_digit(0);

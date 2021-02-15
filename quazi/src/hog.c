@@ -1,8 +1,8 @@
-/** @file
- *  @brief HoG Service sample
- */
-
 /*
+ * Copyright (c) 2021 Andrew Chen <andrew@xortux.com>
+ *
+ * SPDX-License-Identifier: MIT
+ *
  * Copyright (c) 2016 Intel Corporation
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -88,36 +88,37 @@ static uint8_t keyboard_report[8];
 
 static ssize_t read_hid_info(struct bt_conn *conn,
 		const struct bt_gatt_attr *attr, void *buf,
-		uint16_t len, uint16_t offset) {
-
+		uint16_t len, uint16_t offset)
+{
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 			&hid_info, sizeof(hid_info));
 }
 
 static ssize_t read_report_map(struct bt_conn *conn,
 		const struct bt_gatt_attr *attr, void *buf,
-		uint16_t len, uint16_t offset) {
-
+		uint16_t len, uint16_t offset)
+{
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 			hid_report_descriptor, sizeof(hid_report_descriptor));
 }
 
 static ssize_t read_report_chrc_desc(struct bt_conn *conn,
 		const struct bt_gatt_attr *attr, void *buf,
-		uint16_t len, uint16_t offset) {
-
+		uint16_t len, uint16_t offset)
+{
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 			attr->user_data, sizeof(struct report_chrc_desc));
 }
 
-static void input_ccc_changed(const struct bt_gatt_attr *attr, uint16_t value) {
+static void input_ccc_changed(const struct bt_gatt_attr *attr, uint16_t value)
+{
 	LOG_DBG("%d", value);
 }
 
 static ssize_t read_keyboard_report(struct bt_conn *conn,
 		const struct bt_gatt_attr *attr, void *buf,
-		uint16_t len, uint16_t offset) {
-
+		uint16_t len, uint16_t offset)
+{
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 			keyboard_report, sizeof(keyboard_report));
 }
@@ -125,14 +126,14 @@ static ssize_t read_keyboard_report(struct bt_conn *conn,
 static ssize_t write_ctrl_point(struct bt_conn *conn,
 		const struct bt_gatt_attr *attr,
 		const void *buf, uint16_t len, uint16_t offset,
-		uint8_t flags) {
-
+		uint8_t flags)
+{
 	LOG_HEXDUMP_DBG(buf, len, "write_ctrl_point");
 
 	return len;
 }
 
-#define PERM_READ
+#define PERM_READ BT_GATT_PERM_READ_ENCRYPT
 
 /* HID Service Declaration */
 BT_GATT_SERVICE_DEFINE(hog_svc,
@@ -163,11 +164,13 @@ static const struct bt_gatt_attr *mouse_attr;
 static const struct bt_gatt_attr *system_attr;
 static const struct bt_gatt_attr *consumer_attr;
 
-uint8_t quazi_hog_keyboard_leds(void) {
+uint8_t quazi_hog_keyboard_leds(void)
+{
 	return 0;
 }
 
-void quazi_hog_send_keyboard(uint8_t *report) {
+void quazi_hog_send_keyboard(uint8_t *report)
+{
 	//memcpy(keyboard_report, report, sizeof(keyboard_report));
 	if (quazi_ble_conn) {
 		int err = bt_gatt_notify(quazi_ble_conn, keyboard_report_attr, report, 8);
@@ -177,15 +180,19 @@ void quazi_hog_send_keyboard(uint8_t *report) {
 	}
 }
 
-void quazi_hog_send_mouse(uint8_t *report) {
+void quazi_hog_send_mouse(uint8_t *report)
+{
 }
 
-void quazi_hog_send_system(uint16_t data) {
+void quazi_hog_send_system(uint16_t data)
+{
 }
 
-void quazi_hog_send_consumer(uint16_t data) {
+void quazi_hog_send_consumer(uint16_t data)
+{
 }
 
-void quazi_hog_init(void) {
+void quazi_hog_init(void)
+{
 	keyboard_report_attr = &hog_svc.attrs[6];
 }

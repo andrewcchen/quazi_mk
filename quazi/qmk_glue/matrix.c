@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2021 Andrew Chen <andrew@xortux.com>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 #include <zephyr.h>
 #include <device.h>
 #include <devicetree.h>
@@ -11,11 +17,13 @@
 
 static uint32_t matrix[MATRIX_ROWS];
 
-void matrix_init(void) {
+void matrix_init(void)
+{
 	quazi_matrix_scan_init();
 }
 
-uint8_t matrix_scan(void) {
+uint8_t matrix_scan(void)
+{
 	bool changed = false;
 
 	for (int i = 0; i < MATRIX_ROWS; i++) {
@@ -30,11 +38,13 @@ uint8_t matrix_scan(void) {
 	return changed;
 }
 
-uint32_t matrix_get_row(uint8_t row) {
+uint32_t matrix_get_row(uint8_t row)
+{
 	return matrix[row];
 }
 
-void matrix_print(void) {
+void matrix_print(void)
+{
 	fputs("0123456789ABCDEF\n", stdout);
 	for (int i = 0; i < MATRIX_ROWS; i++) {
 		for (int j = 0; j < MATRIX_COLS; j++) {
