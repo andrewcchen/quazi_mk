@@ -31,27 +31,27 @@
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
-// TODO performance all functions on a workqueue to avoid threading issues
+/** Handle for current connection, NULL if disconnected
+ */
+struct bt_conn *quazi_ble_conn;
 
-enum advertising_state_machine {
-	ADV_DISABLED,
-	ADV_PAIRING,
-	ADV_FAST,
-	ADV_SLOW,
-	ADV_CONNECTED
-} static adv_state;
+static int8_t connect_id, unpair_id, pair_id;
 
-static int selected_identity;
-
-static int passkey_digits_left;
+static int8_t passkey_digits_left;
 static int passkey_entered;
 
-struct bt_conn *quazi_ble_conn;
+static struct k_delayed_work stop_adv_work;
+static struct k_work start_directed_adv_work;
+static struct k_work start_pairing_adv_work;
+static struct k_work disconnect_work;
+static struct k_work connect_work;
+static struct k_work unpair_work;
+static struct k_work pair_work;
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
+	int rc;
 	char addr[BT_ADDR_LE_STR_LEN];
-
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
 	if (err) {
@@ -59,18 +59,24 @@ static void connected(struct bt_conn *conn, uint8_t err)
 		return;
 	}
 
-	LOG_INF("Connected %s", log_strdup(addr));
+	k_delayed_work_cancel(&stop_adv_work);
 
-	if (bt_le_adv_stop()) {
-		LOG_ERR("Failed to stop advertising");
+	rc = bt_le_adv_stop();
+	if (rc) {
+		LOG_ERR("Failed to stop advertising (err %d)", rc);
 	}
 
-	if (bt_conn_set_security(conn, BT_SECURITY_L2)) {
-		LOG_ERR("Failed to set security");
+	rc = bt_conn_set_security(conn, BT_SECURITY_L2);
+	if (rc) {
+		LOG_ERR("Failed to set security (err %d)", rc);
 	}
-	
+
+	// TODO update connection parameters
+
 	bt_conn_ref(conn);
 	quazi_ble_conn = conn;
+
+	LOG_INF("Connected %s", log_strdup(addr));
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -82,7 +88,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	LOG_INF("Disconnected from %s (reason 0x%02x)", log_strdup(addr), reason);
 
 	// TODO start advertising if not intentional disconnect
-	
+
 	if (quazi_ble_conn == conn) {
 		quazi_ble_conn = NULL;
 		bt_conn_unref(conn);
@@ -98,8 +104,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
 	if (!err) {
 		LOG_INF("Security changed: %s level %u", log_strdup(addr), level);
 	} else {
-		LOG_ERR("Security failed: %s level %u err %d", log_strdup(addr), level, err);
-		LOG_INF("Disconnecting.");
+		LOG_ERR("Security failed: %s level %u (err %d)", log_strdup(addr), level, err);
 		bt_conn_disconnect(conn, BT_HCI_ERR_AUTH_FAIL);
 	}
 }
@@ -113,9 +118,7 @@ static struct bt_conn_cb conn_callbacks = {
 static void auth_passkey_entry(struct bt_conn *conn)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
-
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
 	LOG_INF("Passkey entry for %s", log_strdup(addr));
 
 	passkey_entered = 0;
@@ -124,22 +127,33 @@ static void auth_passkey_entry(struct bt_conn *conn)
 
 static void auth_cancel(struct bt_conn *conn)
 {
-	char addr[BT_ADDR_LE_STR_LEN];
+	LOG_INF("Pairing cancelled");
+}
 
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-	LOG_INF("Pairing cancelled: %s", log_strdup(addr));
+static void unpair_other(const struct bt_bond_info *info, void *data) {
+	bt_addr_le_t *addr = data;
+	if (bt_addr_le_cmp(addr, &info->addr)) {
+		int err = bt_unpair(unpair_id, &info->addr);
+		if (err) {
+			char addr_str[BT_ADDR_LE_STR_LEN];
+			bt_addr_le_to_str(&info->addr, addr_str, sizeof(addr_str));
+			LOG_WRN("Failed to unpair %s (err %d)", log_strdup(addr_str), err);
+		}
+	}
 }
 
 static void pairing_complete(struct bt_conn *conn, bool bonded)
 {
 	LOG_INF("Pairing Complete (bonded %d)", bonded);
+
+	struct bt_conn_info info;
+	bt_conn_get_info(conn, &info);
+	bt_foreach_bond(info.id, unpair_other, (void *)bt_conn_get_dst(conn));
 }
 
 static void pairing_failed(struct bt_conn *conn, enum bt_security_err reason)
 {
-	LOG_INF("Pairing Failed (%d). Disconnecting.", reason);
-
+	LOG_INF("Pairing Failed (%d)", reason);
 	bt_conn_disconnect(conn, BT_HCI_ERR_AUTH_FAIL);
 }
 
@@ -150,168 +164,180 @@ static struct bt_conn_auth_cb auth_cb_display = {
 	.pairing_failed = pairing_failed,
 };
 
-void quazi_ble_init(void)
-{
-	int err;
-
-	err = bt_enable(NULL); // enable bt synchronously
-	if (err) {
-		LOG_ERR("Bluetooth init failed (err %d)", err);
-		return;
-	}
-
-	err = settings_load_subtree("bt");
-	if (err) {
-		LOG_ERR("Load bluetooth settings failed (err %d)", err);
-		return;
-	}
-
-	LOG_INF("Bluetooth initialized");
-
-	quazi_hog_init();
-
-	//quazi_ble_start_adv();
-
-	//LOG_INF("Advertising successfully started");
-
-	bt_conn_cb_register(&conn_callbacks);
-	bt_conn_auth_cb_register(&auth_cb_display);
-}
-
-static void get_bonded_addr_helper(const struct bt_bond_info *info, void *data)
-{
-	const bt_addr_le_t **ppaddr = data;
-	if (*ppaddr != NULL) {
-		LOG_WRN("Multiple bonds stored for identity");
-	}
-	*ppaddr = &info->addr;
-}
-
-static bt_addr_le_t *get_bonded_addr(int identity)
-{
-	bt_addr_le_t *paddr = NULL;
-	bt_foreach_bond(identity, get_bonded_addr_helper, &paddr);
-	if (paddr != NULL) {
-		LOG_WRN("No bonds stored for identity %d", identity);
-	}
-	return paddr;
-}
-
-// Advertisement data
+/** Advertising data */
 static const struct bt_data ad_data[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 	BT_DATA_BYTES(BT_DATA_UUID16_ALL, BT_UUID_16_ENCODE(BT_UUID_HIDS_VAL))
 };
 
-/*
-static void update_advertising(void) {
-	int err = 0;
-	struct bt_le_adv_param adv_param = { 0 };
-	adv_param.id = 
-
-	LOG_DGB("adv_state %d", adv_state);
-
-	switch (adv_state) {
-	case ADV_PAIR:
-		adv_param = 
-		bt_le_whitelist_clear();
-		err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
-		
-	}
-}
-*/
-
-//static void start_directed_advertising() {
-//	struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
-//			BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME | BT_LE_ADV_OPT_DIR_ADDR_RPA,
-//			0, 0, peer);
-//}
-
-static void start_pairing_advertising()
+/** Stop advertising
+ */
+static void stop_adv(struct k_work *work)
 {
-	// fast undirected advertising, 30-60ms interval
-	struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
-			BT_LE_ADV_OPT_CONNECTABLE | //BT_LE_ADV_OPT_ONE_TIME |
-			BT_LE_ADV_OPT_USE_NAME,
-			BT_GAP_ADV_FAST_INT_MIN_1, BT_GAP_ADV_FAST_INT_MAX_1, NULL);
-	adv_param.id = selected_identity;
+	ARG_UNUSED(work);
 
-	//bt_le_whitelist_clear();
-
-	int err = bt_le_adv_start(&adv_param, ad_data, ARRAY_SIZE(ad_data), NULL, 0);
+	int err = bt_le_adv_stop();
 	if (err) {
-		LOG_ERR("Advertising failed to start (err %d)", err);
+		LOG_ERR("Failed to stop advertising (err %d)", err);
 		return;
 	}
 
-	LOG_INF("Started advertising");
-}
- 
-/*void quazi_ble_adv_start(int identity) {
-	int err;
-
-	err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err) {
-		LOG_ERR("Advertising failed to start (err %d)", err);
-		return err;
+	if ((struct k_delayed_work *)work == &stop_adv_work) {
+		LOG_INF("Stopped advertising");
 	}
-}*/
+}
+
+static void get_bonded_addr_helper(const struct bt_bond_info *info, void *data)
+{
+	bt_addr_le_t *addr = data;
+	if (bt_addr_le_cmp(addr, BT_ADDR_LE_NONE)) {
+		LOG_WRN("Multiple bonds stored for id %d", connect_id);
+	}
+	bt_addr_le_copy(addr, &info->addr);
+}
+
+/** Start fast directed advertising to connect to bonded host
+ *
+ * 2s advertising duration
+ */
+static void start_directed_adv(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	bt_le_adv_stop();
+
+	bt_addr_le_t _addr, *addr = &_addr;
+	bt_addr_le_copy(addr, BT_ADDR_LE_NONE);
+
+	bt_foreach_bond(connect_id, get_bonded_addr_helper, addr);
+	if (!bt_addr_le_cmp(addr, BT_ADDR_LE_NONE)) {
+		LOG_ERR("No bonds stored for id %d", connect_id);
+		return;
+	}
+
+	struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
+			BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME | BT_LE_ADV_OPT_DIR_ADDR_RPA,
+			0, 0, addr);
+	adv_param.id = connect_id;
+
+	if (IS_ENABLED(CONFIG_BT_WHITELIST)) {
+		bt_le_whitelist_clear();
+		bt_le_whitelist_add(addr);
+	}
+
+	int err = bt_le_adv_start(&adv_param, ad_data, ARRAY_SIZE(ad_data), NULL, 0);
+	if (err) {
+		LOG_ERR("Failed to start directed advertising (err %d)", err);
+		return;
+	}
+
+	k_delayed_work_submit(&stop_adv_work, K_MSEC(2000));
+
+	LOG_INF("Started directed advertising");
+}
+
+/** Start fast undirected advertising to connect to non-bonded host
+ *
+ * 180s advertising duration, 20ms to 30ms advertising interval
+ */
+static void start_pairing_adv(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	bt_le_adv_stop();
+
+	struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
+			BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME | BT_LE_ADV_OPT_USE_NAME,
+			0x20, 0x30, NULL);
+	adv_param.id = pair_id;
+
+	if (IS_ENABLED(CONFIG_BT_WHITELIST)) {
+		bt_le_whitelist_clear();
+	}
+
+	int err = bt_le_adv_start(&adv_param, ad_data, ARRAY_SIZE(ad_data), NULL, 0);
+	if (err) {
+		LOG_ERR("Failed to start pairing advertising (err %d)", err);
+		return;
+	}
+
+	k_delayed_work_submit(&stop_adv_work, K_SECONDS(180));
+
+	LOG_INF("Started pairing advertising");
+}
 
 static void disconnect_conn(struct bt_conn *conn, void *data)
 {
-	(void)data;
+	ARG_UNUSED(data);
 
-	char addr[BT_ADDR_LE_STR_LEN];
-	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	bt_conn_ref(conn);
 
-	int ret = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
-	if (ret) {
-		LOG_WRN("Failed to disconnect from %s (err %d)", log_strdup(addr), ret);
+	int err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+	if (err) {
+		char addr[BT_ADDR_LE_STR_LEN];
+		bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+		LOG_WRN("Failed to disconnect from %s (err %d)", log_strdup(addr), err);
 	}
+
+	bt_conn_unref(conn);
+}
+
+static void disconnect(struct k_work *work)
+{
+	bt_conn_foreach(BT_CONN_TYPE_ALL, disconnect_conn, NULL);
+	stop_adv(work);
+}
+
+static void connect(struct k_work *work)
+{
+	disconnect(work);
+	start_directed_adv(work);
+}
+
+static void unpair(struct k_work *work)
+{
+	disconnect(work);
+	int err = bt_unpair(unpair_id, NULL);
+	if (err) {
+		LOG_WRN("Failed to unpair for id %d (err %d)", unpair_id, err);
+	}
+}
+
+static void pair(struct k_work *work)
+{
+	disconnect(work);
+	start_pairing_adv(work);
 }
 
 void quazi_ble_disconnect(void)
 {
-	bt_conn_foreach(BT_CONN_TYPE_ALL, disconnect_conn, NULL);
-	bt_le_adv_stop();
+	LOG_DBG("");
+	k_work_submit(&disconnect_work);
 }
 
 void quazi_ble_connect(int identity)
 {
-	LOG_DBG("connect id %d", identity);
-
-	//if (selected_identity == identity)
-	//	return;
-
-	quazi_ble_disconnect();
-
-	selected_identity = identity;
-
-	start_pairing_advertising();
+	LOG_DBG("id %d", identity);
+	connect_id = identity;
+	k_work_submit(&connect_work);
 }
 
-void quazi_ble_pair(int identity) {
-	LOG_DBG("pair id %d", identity);
-
-	quazi_ble_disconnect();
-
-	selected_identity = identity;
-
-	start_pairing_advertising();
+void quazi_ble_pair(int identity)
+{
+	LOG_DBG("id %d", identity);
+	pair_id = identity;
+	k_work_submit(&pair_work);
 }
 
-void quazi_ble_clear(int identity) {
-	LOG_DBG("clear id %d", identity);
-
-	quazi_ble_disconnect();
-
-	int ret = bt_unpair(identity, NULL);
-	if (ret) {
-		LOG_WRN("Failed to unpair all from id %d (err %d)", identity, ret);
-	}
+void quazi_ble_unpair(int identity)
+{
+	LOG_DBG("id %d", identity);
+	unpair_id = identity;
+	k_work_submit(&unpair_work);
 }
 
-void quazi_ble_passkey_digit(int digit) {
+void quazi_ble_passkey_digit(int digit)
+{
 	if (quazi_ble_conn && passkey_digits_left > 0) {
 		passkey_digits_left--;
 		passkey_entered = passkey_entered * 10 + digit;
@@ -322,4 +348,34 @@ void quazi_ble_passkey_digit(int digit) {
 			passkey_entered = 0;
 		}
 	}
+}
+
+void quazi_ble_init(void)
+{
+	k_delayed_work_init(&stop_adv_work, stop_adv);
+	k_work_init(&start_directed_adv_work, start_directed_adv);
+	k_work_init(&start_pairing_adv_work, start_pairing_adv);
+	k_work_init(&disconnect_work, disconnect);
+	k_work_init(&connect_work, connect);
+	k_work_init(&unpair_work, unpair);
+	k_work_init(&pair_work, pair);
+
+	int err = bt_enable(NULL);
+	if (err) {
+		LOG_ERR("Bluetooth init failed (err %d)", err);
+		return;
+	}
+
+	err = settings_load_subtree("bt");
+	if (err) {
+		LOG_ERR("Failed to load bluetooth settings (err %d)", err);
+		return;
+	}
+
+	quazi_hog_init();
+
+	bt_conn_cb_register(&conn_callbacks);
+	bt_conn_auth_cb_register(&auth_cb_display);
+
+	LOG_INF("Bluetooth initialized");
 }

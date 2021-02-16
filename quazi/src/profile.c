@@ -45,12 +45,17 @@ struct settings_handler settings_conf = {
 
 /** Initialize the profile manager
  *
- * Must only be called after bt_enable()
+ * Must only be called after bt is enabled and bt settings loaded
  */
 void quazi_profile_init(void)
 {
 	settings_register(&settings_conf);
-	settings_load_subtree("quazi/profile");
+
+	int err = settings_load_subtree("quazi/profile");
+	if (err) {
+		LOG_ERR("Failed to load profile settings (err %d)", err);
+		return;
+	}
 
 	bt_addr_le_t addrs[CONFIG_BT_ID_MAX];
 	size_t count = CONFIG_BT_ID_MAX;
@@ -114,5 +119,5 @@ void quazi_profile_pair(void)
  */
 void quazi_profile_clear(void)
 {
-	quazi_ble_clear(selected_profile);
+	quazi_ble_unpair(selected_profile);
 }

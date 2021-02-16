@@ -29,6 +29,8 @@
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
+// TODO call bt functions on workqueue
+
 enum {
 	HIDS_REMOTE_WAKE = BIT(0),
 	HIDS_NORMALLY_CONNECTABLE = BIT(1),

@@ -23,8 +23,15 @@ void quazi_main(void)
 {
 	LOG_INF("QuaziMK Start");
 
+	int err = settings_subsys_init();
+	if (err) {
+		LOG_ERR("settings_subsys_init failed (err %d)", err);
+	}
+
 	quazi_ble_init();
+
 	quazi_profile_init();
+
 	quazi_qmk_init();
 
 	LOG_DBG("init done");
