@@ -29,8 +29,6 @@
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
-// TODO call bt functions on workqueue
-
 enum {
 	HIDS_REMOTE_WAKE = BIT(0),
 	HIDS_NORMALLY_CONNECTABLE = BIT(1),
@@ -135,8 +133,6 @@ static ssize_t write_ctrl_point(struct bt_conn *conn,
 	return len;
 }
 
-#define PERM_READ BT_GATT_PERM_READ_ENCRYPT
-
 /* HID Service Declaration */
 BT_GATT_SERVICE_DEFINE(hog_svc,
 	BT_GATT_PRIMARY_SERVICE(BT_UUID_HIDS),
@@ -173,7 +169,7 @@ uint8_t quazi_hog_keyboard_leds(void)
 
 void quazi_hog_send_keyboard(uint8_t *report)
 {
-	//memcpy(keyboard_report, report, sizeof(keyboard_report));
+	memcpy(keyboard_report, report, sizeof(keyboard_report));
 	if (quazi_ble_conn) {
 		int err = bt_gatt_notify(quazi_ble_conn, keyboard_report_attr, report, 8);
 		if (err) {

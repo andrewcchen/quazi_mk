@@ -30,4 +30,5 @@ target_include_directories(qmk PUBLIC
 
 target_sources(app PRIVATE
 	src/main.c
+	src/shell.c
 )
