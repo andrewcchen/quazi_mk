@@ -44,18 +44,19 @@
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		zephyr,code-partition = &slot0_partition;
+
+		quazi,caps-lock-led = &led_caps_lock;
 	};
 
 	leds {
 		compatible = "gpio-leds";
-		led0: led_0 {
+		led_caps_lock: led_0_13 {
 			gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
-			label = "CAPS LED";
+			label = "CapsLock LED";
 		};
 	};
 
 	aliases {
-		led0 = &led0;
 	};
 };
 
@@ -63,9 +64,9 @@
 	status = "okay";
 };
 
-//&gpiote {
-//	status = "okay";
-//};
+&gpiote {
+	status = "okay";
+};
 
 &gpio0 {
 	status = "okay";
