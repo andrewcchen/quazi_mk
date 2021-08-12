@@ -12,10 +12,11 @@
 
 #include <settings/settings.h>
 
-#include "profile.h"
 #include "ble.h"
-#include "quazi.h"
+#include "hid_leds.h"
+#include "profile.h"
 #include "qmk_glue.h"
+#include "quazi.h"
 
 LOG_MODULE_REGISTER(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
@@ -28,10 +29,9 @@ void quazi_main(void)
 		LOG_ERR("settings_subsys_init failed (err %d)", err);
 	}
 
+	quazi_hid_leds_init();
 	quazi_ble_init();
-
 	quazi_profile_init();
-
 	quazi_qmk_init();
 
 	LOG_DBG("init done");

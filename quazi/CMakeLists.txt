@@ -8,6 +8,7 @@ target_sources(quazi PRIVATE
 	src/hog.c
 	src/profile.c
 	src/matrix_scan.c
+	src/hid_leds.c
 )
 
 target_include_directories(glue PRIVATE
@@ -22,6 +23,7 @@ target_sources(glue PRIVATE
 	qmk_glue/matrix.c
 	qmk_glue/keyboard.c
 	qmk_glue/host_driver.c
+	qmk_glue/led_set.c
 )
 
 target_include_directories(qmk PUBLIC

@@ -85,6 +85,7 @@ static struct report_chrc_desc consumer_chrc_desc = {
 };
 
 static uint8_t keyboard_report[8];
+static uint8_t led_report;
 
 static ssize_t read_hid_info(struct bt_conn *conn,
 		const struct bt_gatt_attr *attr, void *buf,
@@ -123,6 +124,18 @@ static ssize_t read_keyboard_report(struct bt_conn *conn,
 			keyboard_report, sizeof(keyboard_report));
 }
 
+
+static ssize_t write_led_report(struct bt_conn *conn,
+		const struct bt_gatt_attr *attr, const void *buf,
+		uint16_t len, uint16_t offset, uint8_t flags)
+{
+	if (len != 1) {
+		LOG_WRN("Invalid led report received: len = %d", len);
+	}
+
+	led_report = ((uint8_t *)buf)[0];
+}
+
 static ssize_t write_ctrl_point(struct bt_conn *conn,
 		const struct bt_gatt_attr *attr,
 		const void *buf, uint16_t len, uint16_t offset,
@@ -151,6 +164,13 @@ BT_GATT_SERVICE_DEFINE(hog_svc,
 	BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ,
 			read_report_chrc_desc, NULL, &keyboard_chrc_desc),
 
+	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT,
+			BT_GATT_CHRC_WRITE, BT_GATT_PERM_WRITE_ENCRYPT,
+			NULL, write_led_report, NULL),
+	BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ,
+			read_report_chrc_desc, NULL, &led_chrc_desc),
+
 	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_CTRL_POINT,
 			BT_GATT_CHRC_WRITE_WITHOUT_RESP,
 			BT_GATT_PERM_WRITE,
@@ -164,7 +184,7 @@ static const struct bt_gatt_attr *consumer_attr;
 
 uint8_t quazi_hog_keyboard_leds(void)
 {
-	return 0;
+	return led_report;
 }
 
 void quazi_hog_send_keyboard(uint8_t *report)
@@ -192,5 +212,9 @@ void quazi_hog_send_consumer(uint16_t data)
 
 void quazi_hog_init(void)
 {
-	keyboard_report_attr = &hog_svc.attrs[6];
+	for (int i = 0; i < ARRAY_SIZE(attr_hog_svc); i++) {
+
+		if (attr_hog_svc[i].read == read_keyboard_report)
+			keyboard_report_attr = &attr_hog_svc[i];
+	}
 }

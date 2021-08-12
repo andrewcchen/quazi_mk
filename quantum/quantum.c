@@ -18,6 +18,7 @@
 #include "quantum.h"
 
 #include "process_bluetooth.h"
+#include "led_set.h"
 
 #ifdef BLUETOOTH_ENABLE
 #    include "outputselect.h"
@@ -774,6 +775,7 @@ __attribute__((weak)) void led_set(uint8_t usb_led) {
     backlight_set(bl_toggle_lvl);
 #endif
 
+    led_set_quazi(usb_led);
     led_set_kb(usb_led);
     led_update_kb((led_t)usb_led);
 }
