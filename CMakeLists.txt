@@ -40,11 +40,14 @@ project(quazi_mk)
 
 # Zephyr calls add_subdirectory(${BOARD_DIR})
 
-zephyr_library_named(qmk)
+add_library(qmk)
+zephyr_link_interface(qmk)
 include(qmk.cmake)
 
-zephyr_library_named(glue)
-zephyr_library_named(quazi)
+add_library(glue)
+zephyr_link_interface(glue)
+add_library(quazi)
+zephyr_link_interface(quazi)
 add_subdirectory(quazi)
 
 target_link_libraries(glue PRIVATE qmk quazi)
