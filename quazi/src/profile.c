@@ -16,6 +16,7 @@
 
 #include "profile.h"
 #include "ble.h"
+#include "quazi.h"
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
@@ -120,4 +121,14 @@ void quazi_profile_pair(void)
 void quazi_profile_clear(void)
 {
 	quazi_ble_unpair(selected_profile);
+}
+
+void quazi_profile_enter_idle(void)
+{
+	quazi_ble_disconnect();
+}
+
+void quazi_profile_leave_idle(void)
+{
+	quazi_profile_connect();
 }

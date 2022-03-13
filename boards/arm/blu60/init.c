@@ -8,6 +8,7 @@
 #include "keyboard.h"
 
 #include <sys/printk.h>
+#include <sys/reboot.h>
 
 /* Requires config options:
  * CONFIG_FLASH=y
@@ -34,7 +35,7 @@ static void configure_uicr(void) {
 		flash_erase(flash, (off_t)NRF_UICR, sizeof(*NRF_UICR));
 		flash_write_protection_set(flash, true);
 
-		sys_reboot();
+		sys_reboot(SYS_REBOOT_COLD);
 	}
 
 	// If pin 9 and 10 are mapped to NFC pins
@@ -47,7 +48,7 @@ static void configure_uicr(void) {
 		flash_write(flash, (off_t)&NRF_UICR->NFCPINS, &nfcpins, 4); 
 		flash_write_protection_set(flash, true);
 
-		sys_reboot();
+		sys_reboot(SYS_REBOOT_COLD);
 	}
 }
 

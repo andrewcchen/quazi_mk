@@ -14,6 +14,7 @@
 
 #include "ble.h"
 #include "hid_leds.h"
+#include "idle.h"
 #include "profile.h"
 #include "qmk_glue.h"
 #include "quazi.h"
@@ -34,17 +35,17 @@ static void main_timer_handler(struct k_timer *)
 static void quazi_main_task(struct k_work *)
 {
 	quazi_qmk_task();
+
+	quazi_idle_check();
 }
 
 void quazi_main_loop_start(void)
 {
-	LOG_INF("main loop start");
 	k_timer_start(&main_timer, K_NO_WAIT, K_MSEC(10));
 }
 
 void quazi_main_loop_stop(void)
 {
-	LOG_INF("main loop stop");
 	k_timer_stop(&main_timer);
 	k_work_cancel(&main_work);
 }

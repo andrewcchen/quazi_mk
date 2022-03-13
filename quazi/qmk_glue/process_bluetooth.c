@@ -25,13 +25,13 @@ bool process_bluetooth(uint16_t keycode, keyrecord_t *record)
 	static uint16_t profile_times[CONFIG_BT_ID_MAX];
 
 	uint16_t time = record->event.time;
-	int profile = keycode - BT_0;
+	int profile = keycode - BT_1 + 1;
 
 	if (record->event.pressed) {
 		if (keycode == BT_CLEAR) {
 			clear_time = time;
 			return false;
-		} else if (keycode >= BT_0 && profile < CONFIG_BT_ID_MAX) {
+		} else if (keycode >= BT_1 && profile < CONFIG_BT_ID_MAX) {
 			profile_times[profile] = time;
 			return false;
 		}
@@ -46,7 +46,7 @@ bool process_bluetooth(uint16_t keycode, keyrecord_t *record)
 			return false;
 		} else if (keycode == BT_PREV) {
 			return false;
-		} else if (keycode >= BT_0 && profile < CONFIG_BT_ID_MAX) {
+		} else if (keycode >= BT_1 && profile < CONFIG_BT_ID_MAX) {
 			uint16_t diff = time - profile_times[profile];
 
 			quazi_profile_select(profile);

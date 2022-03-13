@@ -16,7 +16,8 @@ if (NOT DEFINED BOARD)
 endif()
 
 set_property(GLOBAL PROPERTY CSTD gnu11)
-#list(APPEND CMAKE_C_FLAGS "-Wstrict-prototypes")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror-implicit-function-declaration")
 
 list(APPEND BOARD_ROOT ${CMAKE_SOURCE_DIR})
 

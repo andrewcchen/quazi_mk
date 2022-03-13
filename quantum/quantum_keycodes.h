@@ -513,7 +513,6 @@ enum quantum_keycodes {
     BT_CLEAR,
     BT_NEXT,
     BT_PREV,
-    BT_0,
     BT_1,
     BT_2,
     BT_3,

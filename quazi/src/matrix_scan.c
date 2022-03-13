@@ -11,6 +11,7 @@
 #include <logging/log.h>
 
 #include "matrix_scan.h"
+#include "idle.h"
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
@@ -35,11 +36,10 @@ static const gpio_flags_t row_flags[MATRIX_ROWS] =
 static const gpio_flags_t col_flags[MATRIX_COLS] = 
 	{ UTIL_LISTIFY(MATRIX_COLS, MATRIX_GPIO_FLAGS_LIST, col) };
 
-//static idle_state
 
-static void gpio_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+static void gpio_callback(const struct device *, struct gpio_callback *, uint32_t)
 {
-	LOG_INF("gpio callback");
+	quazi_idle_leave();
 }
 
 void quazi_matrix_scan_init(void)
@@ -77,7 +77,6 @@ void quazi_matrix_scan_init(void)
 	}
 }
 
-// TODO debounce
 uint32_t quazi_matrix_scan_row(int row)
 {
 	uint32_t r = 0;
@@ -93,15 +92,26 @@ uint32_t quazi_matrix_scan_row(int row)
 	return r;
 }
 
-void quazi_matrix_scan_enter_idle(void) {
-	LOG_INF("matrix entering idle");
-
+void quazi_matrix_scan_enter_idle(void)
+{
 	for (int i = 0; i < MATRIX_ROWS; i++) {
 		gpio_pin_set(row_port[i], row_pin[i], 1);
 	}
 	for (int i = 0; i < MATRIX_COLS; i++) {
 		int ret = gpio_pin_interrupt_configure(col_port[i], col_pin[i], GPIO_INT_EDGE_RISING);
 
-		if (ret < 0) LOG_ERR("matrix pin configure failed: %d", ret);
+		if (ret < 0) LOG_ERR("matrix pin interrupt configure failed: %d", ret);
+	}
+}
+
+void quazi_matrix_scan_leave_idle(void)
+{
+	for (int i = 0; i < MATRIX_ROWS; i++) {
+		gpio_pin_set(row_port[i], row_pin[i], 0);
+	}
+	for (int i = 0; i < MATRIX_COLS; i++) {
+		int ret = gpio_pin_interrupt_configure(col_port[i], col_pin[i], GPIO_INT_DISABLE);
+
+		if (ret < 0) LOG_ERR("matrix pin interrupt configure failed: %d", ret);
 	}
 }

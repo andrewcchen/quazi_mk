@@ -28,11 +28,14 @@
 #include <logging/log.h>
 
 #include "hog.h"
+#include "profile.h"
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 /// Handle for current connection, NULL if disconnected
 struct bt_conn *quazi_ble_conn;
+
+static bool advertising_active;
 
 static int8_t connect_id, unpair_id, pair_id;
 
@@ -45,23 +48,16 @@ static struct k_work start_pairing_adv_work;
 static struct k_work disconnect_work;
 static struct k_work unpair_work;
 
-#include "matrix_scan.h"
-#include "quazi.h"
-static void enter_idle(void)
-{
-	quazi_main_loop_stop();
-	quazi_matrix_scan_enter_idle();
-}
-
 static void connected(struct bt_conn *conn, uint8_t err)
 {
 	int rc;
 	char addr[BT_ADDR_LE_STR_LEN];
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
+	advertising_active = false;
+
 	if (err) {
 		LOG_ERR("Failed to connect to %s (%u)", log_strdup(addr), err);
-		enter_idle();
 		return;
 	}
 
@@ -93,15 +89,14 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 	LOG_INF("Disconnected from %s (reason 0x%02x)", log_strdup(addr), reason);
 
-	if (quazi_ble_conn == conn) {
-		quazi_ble_conn = NULL;
-		bt_conn_unref(conn);
-	}
+	if (quazi_ble_conn != conn)
+		return;
+
+	bt_conn_unref(conn);
+	quazi_ble_conn = NULL;
 
 	if (reason == BT_HCI_ERR_CONN_TIMEOUT) {
 		k_work_submit(&start_directed_adv_work);
-	} else {
-		enter_idle();
 	}
 }
 
@@ -182,9 +177,9 @@ static const struct bt_data ad_data[] = {
 
 /** Stop advertising
  */
-static void stop_adv(struct k_work *work)
+static void stop_adv(struct k_work *)
 {
-	ARG_UNUSED(work);
+	advertising_active = false;
 
 	int err = bt_le_adv_stop();
 	if (err) {
@@ -206,9 +201,12 @@ static void get_bonded_addr_helper(const struct bt_bond_info *info, void *data)
 
 /** Start fast directed advertising to connect to bonded host
  */
-static void start_directed_adv(struct k_work *work)
+static void start_directed_adv(struct k_work *)
 {
-	ARG_UNUSED(work);
+	if (quazi_ble_conn != NULL) {
+		bt_conn_unref(quazi_ble_conn);
+		quazi_ble_conn = NULL;
+	}
 
 	bt_addr_le_t _addr, *addr = &_addr;
 	bt_addr_le_copy(addr, BT_ADDR_LE_NONE);
@@ -235,6 +233,8 @@ static void start_directed_adv(struct k_work *work)
 		return;
 	}
 
+	advertising_active = true;
+
 	LOG_INF("Started directed advertising");
 }
 
@@ -242,9 +242,12 @@ static void start_directed_adv(struct k_work *work)
  *
  * 180s advertising duration, 20ms to 30ms advertising interval
  */
-static void start_pairing_adv(struct k_work *work)
+static void start_pairing_adv(struct k_work *)
 {
-	ARG_UNUSED(work);
+	if (quazi_ble_conn != NULL) {
+		bt_conn_unref(quazi_ble_conn);
+		quazi_ble_conn = NULL;
+	}
 
 	struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
 			BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_ONE_TIME | BT_LE_ADV_OPT_USE_NAME,
@@ -261,15 +264,15 @@ static void start_pairing_adv(struct k_work *work)
 		return;
 	}
 
+	advertising_active = true;
+
 	k_delayed_work_submit(&stop_adv_work, K_SECONDS(180));
 
 	LOG_INF("Started pairing advertising");
 }
 
-static void disconnect_conn(struct bt_conn *conn, void *data)
+static void disconnect_conn(struct bt_conn *conn, void *)
 {
-	ARG_UNUSED(data);
-
 	bt_conn_ref(conn);
 
 	bt_addr_t *addr = bt_conn_get_dst(conn);
@@ -288,6 +291,8 @@ static void disconnect_conn(struct bt_conn *conn, void *data)
 
 static void disconnect(struct k_work *work)
 {
+	advertising_active = false;
+
 	int err = bt_le_adv_stop();
 	if (err) {
 		LOG_ERR("Failed to stop advertising (err %d)", err);
@@ -303,6 +308,10 @@ static void unpair(struct k_work *work)
 	if (err) {
 		LOG_WRN("Failed to unpair for id %d (err %d)", unpair_id, err);
 	}
+}
+
+bool quazi_ble_is_active(void) {
+	return quazi_ble_conn != NULL || advertising_active;
 }
 
 void quazi_ble_disconnect(void)
@@ -375,6 +384,8 @@ void quazi_ble_init(void)
 	k_work_init(&start_pairing_adv_work, start_pairing_adv);
 	k_work_init(&disconnect_work, disconnect);
 	k_work_init(&unpair_work, unpair);
+
+	advertising_active = false;
 
 	int err = bt_enable(NULL);
 	if (err) {

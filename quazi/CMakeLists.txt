@@ -3,12 +3,13 @@ target_include_directories(quazi PUBLIC
 )
 
 target_sources(quazi PRIVATE
-	src/quazi.c
 	src/ble.c
-	src/hog.c
-	src/profile.c
-	src/matrix_scan.c
 	src/hid_leds.c
+	src/hog.c
+	src/idle.c
+	src/matrix_scan.c
+	src/profile.c
+	src/quazi.c
 )
 
 target_include_directories(glue PRIVATE
