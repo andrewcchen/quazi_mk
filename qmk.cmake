@@ -5,15 +5,15 @@ target_include_directories(qmk PUBLIC
 )
 
 target_sources(qmk PRIVATE
-	quantum/quantum.c
-	quantum/keymap_common.c
 	quantum/keycode_config.c
-	#quantum/matrix_common.c
+	quantum/keymap_common.c
+	quantum/led.c
 	#quantum/matrix.c
-	quantum/debounce/sym_g.c
-	quantum/process_keycode/process_space_cadet.c
-	quantum/process_keycode/process_magic.c
+	#quantum/matrix_common.c
 	quantum/process_keycode/process_grave_esc.c
+	quantum/process_keycode/process_magic.c
+	quantum/process_keycode/process_space_cadet.c
+	quantum/quantum.c
 )
 
 target_include_directories(qmk PUBLIC

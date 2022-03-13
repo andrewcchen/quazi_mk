@@ -20,8 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdint.h>
 #include <stdbool.h>
 
+#if (MATRIX_COLS <= 32)
 typedef uint32_t matrix_row_t;
-typedef uint32_t matrix_col_t;
+#else
+#    error "MATRIX_COLS: invalid value"
+#endif
 
 #define MATRIX_ROW_SHIFTER ((matrix_row_t)1)
 
