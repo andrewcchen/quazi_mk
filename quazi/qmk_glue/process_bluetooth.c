@@ -12,6 +12,8 @@
 #include "profile.h"
 #include "ble.h"
 
+#include "quazi_process_bluetooth.h"
+
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 #define QUAZI_BT_TAP_TIME 1000

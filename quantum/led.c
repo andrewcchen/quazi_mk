@@ -18,6 +18,8 @@
 #include "debug.h"
 #include "gpio.h"
 
+#include "quazi_led_set.h"
+
 #ifdef BACKLIGHT_CAPS_LOCK
 #    ifdef BACKLIGHT_ENABLE
 #        include "backlight.h"

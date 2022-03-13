@@ -12,7 +12,9 @@ target_sources(quazi PRIVATE
 )
 
 target_include_directories(glue PRIVATE
+	../quantum
 	include
+	qmk_include
 )
 
 target_sources(glue PRIVATE

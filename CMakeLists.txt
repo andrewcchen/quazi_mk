@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.13.1)
 
-set_property(GLOBAL PROPERTY CSTD gnu11)
-
 set(CMAKE_C_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "Flags used by the C compiler during DEBUG builds.")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "Flags used by the CXX compiler during DEBUG builds.")
 
@@ -17,6 +15,7 @@ if (NOT DEFINED BOARD)
 	set(BOARD blu60)
 endif()
 
+set_property(GLOBAL PROPERTY CSTD gnu11)
 #list(APPEND CMAKE_C_FLAGS "-Wstrict-prototypes")
 
 list(APPEND BOARD_ROOT ${CMAKE_SOURCE_DIR})
@@ -43,18 +42,27 @@ project(quazi_mk)
 # Zephyr calls add_subdirectory(${BOARD_DIR})
 
 add_library(qmk)
-zephyr_link_interface(qmk)
-include(qmk.cmake)
-
 add_library(glue)
-zephyr_link_interface(glue)
 add_library(quazi)
-zephyr_link_interface(quazi)
+
+include(qmk.cmake)
 add_subdirectory(quazi)
 
-target_link_libraries(glue PRIVATE qmk quazi)
-target_link_libraries(qmk PRIVATE glue)
-target_link_libraries(quazi PRIVATE glue)
-target_link_libraries(app PRIVATE quazi qmk)
+target_link_libraries(qmk PRIVATE
+	-Wl,--defsym=quazi_printf=printk
+	zephyr_interface)
+
+target_link_libraries(glue PRIVATE
+	zephyr_interface
+	qmk)
+
+target_link_libraries(quazi PRIVATE
+	zephyr_interface
+	glue)
+
+target_link_libraries(app PRIVATE
+	-Wl,--whole-archive
+	qmk quazi
+	-Wl,--no-whole-archive)
 
 add_definitions(-DMATRIX_ROWS=5 -DMATRIX_COLS=14)

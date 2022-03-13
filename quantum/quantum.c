@@ -36,6 +36,8 @@
 #    include "haptic.h"
 #endif
 
+#include "quazi_process_bluetooth.h"
+
 #ifdef AUDIO_ENABLE
 #    ifndef GOODBYE_SONG
 #        define GOODBYE_SONG SONG(GOODBYE_SOUND)
@@ -237,6 +239,8 @@ bool process_record_quantum(keyrecord_t *record) {
             // Must run asap to ensure all keypresses are recorded.
             process_dynamic_macro(keycode, record) &&
 #endif
+            process_bluetooth(keycode, record) &&
+            process_bluetooth_passkey(keycode, record) &&
 #if defined(AUDIO_ENABLE) && defined(AUDIO_CLICKY)
             process_clicky(keycode, record) &&
 #endif
@@ -334,17 +338,6 @@ bool process_record_quantum(keyrecord_t *record) {
 #ifdef VELOCIKEY_ENABLE
             case VLK_TOG:
                 velocikey_toggle();
-                return false;
-#endif
-#ifdef BLUETOOTH_ENABLE
-            case OUT_AUTO:
-                set_output(OUTPUT_AUTO);
-                return false;
-            case OUT_USB:
-                set_output(OUTPUT_USB);
-                return false;
-            case OUT_BT:
-                set_output(OUTPUT_BLUETOOTH);
                 return false;
 #endif
 #ifndef NO_ACTION_ONESHOT
