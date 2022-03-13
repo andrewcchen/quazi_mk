@@ -24,7 +24,8 @@
 #define COL2ROW 0
 #define ROW2COL 1
 
-#define API_SYSEX_MAX_SIZE 32
+// Deprecated alias - avoid using
+#define KEYMAP LAYOUT
 
 #ifdef AUDIO_ENABLE
     #include "song_list.h"

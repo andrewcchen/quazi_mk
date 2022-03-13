@@ -1,16 +1,16 @@
 target_include_directories(qmk PUBLIC
 	quantum
+	quantum/bootmagic
 	quantum/process_keycode
-	#quantum/audio
+	quantum/sequencer
 )
 
 target_sources(qmk PRIVATE
 	quantum/bitwise.c
+	quantum/bootmagic/magic.c
 	quantum/keycode_config.c
 	quantum/keymap_common.c
 	quantum/led.c
-	#quantum/matrix.c
-	#quantum/matrix_common.c
 	quantum/process_keycode/process_grave_esc.c
 	quantum/process_keycode/process_magic.c
 	quantum/process_keycode/process_space_cadet.c
@@ -33,7 +33,6 @@ target_sources(qmk PRIVATE
 	tmk_core/common/debug.c
 	tmk_core/common/sendchar_null.c
 	tmk_core/common/report.c
-	tmk_core/common/magic.c
 	tmk_core/common/eeconfig.c
 )
 
