@@ -1,16 +1,25 @@
 target_include_directories(qmk PUBLIC
 	quantum
 	quantum/bootmagic
+	quantum/logging
 	quantum/process_keycode
 	quantum/sequencer
 )
 
 target_sources(qmk PRIVATE
+	quantum/action.c
+	quantum/action_layer.c
+	quantum/action_macro.c
+	quantum/action_tapping.c
+	quantum/action_util.c
 	quantum/bitwise.c
 	quantum/bootmagic/magic.c
+	quantum/eeconfig.c
+	quantum/keyboard.c
 	quantum/keycode_config.c
 	quantum/keymap_common.c
 	quantum/led.c
+	quantum/logging/debug.c
 	quantum/process_keycode/process_grave_esc.c
 	quantum/process_keycode/process_magic.c
 	quantum/process_keycode/process_space_cadet.c
@@ -24,16 +33,7 @@ target_include_directories(qmk PUBLIC
 
 target_sources(qmk PRIVATE
 	tmk_core/common/host.c
-	tmk_core/common/keyboard.c
-	tmk_core/common/action.c
-	tmk_core/common/action_tapping.c
-	tmk_core/common/action_macro.c
-	tmk_core/common/action_layer.c
-	tmk_core/common/action_util.c
-	tmk_core/common/debug.c
-	tmk_core/common/sendchar_null.c
 	tmk_core/common/report.c
-	tmk_core/common/eeconfig.c
 )
 
 target_include_directories(qmk PUBLIC

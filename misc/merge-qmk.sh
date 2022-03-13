@@ -8,8 +8,8 @@ if [[ ! -e .git ]]; then
 	exit 1
 fi
 
-# QMK files that are removed
-removed_files=(
+# QMK files that we removed
+remove_files=(
 .clang-format
 .editorconfig
 .gitattributes
@@ -58,17 +58,28 @@ users
 util
 )
 
-# QMK files that are overriden
-overriden_files=(
+# QMK files we overwrote
+overwrite_files=(
 .gitignore
+readme.md
 )
 
-for f in ${removed_files[@]}; do
+# QMK files we want to keep
+restore_files=(
+drivers
+)
+
+for f in ${remove_files[@]}; do
 	git rm -rf $f
 done
 
-for f in ${overriden_files[@]}; do
+for f in ${overwrite_files[@]}; do
 	git restore --ours $f
+	git add $f
+done
+
+for f in ${restore_files[@]}; do
+	git restore --theirs $f
 	git add $f
 done
 
