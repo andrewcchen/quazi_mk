@@ -10,7 +10,6 @@ extern struct bt_conn *quazi_ble_conn;
 
 void quazi_ble_init(void);
 
-bool quazi_ble_is_active();
 void quazi_ble_disconnect(void);
 void quazi_ble_connect(int identity);
 void quazi_ble_pair(int identity);

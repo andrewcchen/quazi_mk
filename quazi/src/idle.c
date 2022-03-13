@@ -9,10 +9,11 @@
 #include <zephyr.h>
 #include <logging/log.h>
 
+#include "idle.h"
 #include "ble.h"
+#include "main.h"
 #include "matrix_scan.h"
 #include "profile.h"
-#include "quazi.h"
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
@@ -47,11 +48,8 @@ void quazi_idle_leave(void)
 {
 	LOG_INF("leaving idle");
 
-	if (current_idle_level >= IDLE_DISCONN) {
+	if (current_idle_level >= IDLE_MATRIX) {
 		quazi_profile_leave_idle();
-	}
-
-	if (current_idle_level >= IDLE_NONE) {
 		quazi_matrix_scan_leave_idle();
 		quazi_main_loop_start();
 	}
@@ -59,20 +57,26 @@ void quazi_idle_leave(void)
 	current_idle_level = IDLE_NONE;
 }
 
+/** Check how long we have been idle and possibly enter idle state
+ *
+ * Call after qmk task in main loop
+ */
 bool quazi_idle_check(void)
 {
-	static uint32_t last_ble_act_time;
+	static uint32_t last_key_act_time;
 
 	uint32_t time = k_uptime_get_32();
 
-	if (last_ble_act_time != 0 && !quazi_ble_is_active()) {
-		if (time - last_ble_act_time > 30) {
-			last_ble_act_time = 0;
-			enter_idle(IDLE_DISCONN);
+	bool key_down = quazi_matrix_scan_key_down;
+	quazi_matrix_scan_key_down = false;
+
+	if (!key_down) {
+		if (time - last_key_act_time > 1000) {
+			enter_idle(IDLE_MATRIX);
 			return true;
 		}
 	} else {
-		last_ble_act_time = time;
+		last_key_act_time = time;
 	}
 
 	return false;

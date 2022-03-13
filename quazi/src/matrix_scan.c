@@ -36,6 +36,8 @@ static const gpio_flags_t row_flags[MATRIX_ROWS] =
 static const gpio_flags_t col_flags[MATRIX_COLS] = 
 	{ UTIL_LISTIFY(MATRIX_COLS, MATRIX_GPIO_FLAGS_LIST, col) };
 
+bool quazi_matrix_scan_key_down;
+
 
 static void gpio_callback(const struct device *, struct gpio_callback *, uint32_t)
 {
@@ -88,6 +90,8 @@ uint32_t quazi_matrix_scan_row(int row)
 	}
 
 	gpio_pin_set(row_port[row], row_pin[row], 0);
+
+	quazi_matrix_scan_key_down |= r;
 
 	return r;
 }

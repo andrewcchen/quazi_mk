@@ -16,7 +16,7 @@
 
 #include "profile.h"
 #include "ble.h"
-#include "quazi.h"
+#include "main.h"
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 

@@ -35,8 +35,6 @@ LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 /// Handle for current connection, NULL if disconnected
 struct bt_conn *quazi_ble_conn;
 
-static bool advertising_active;
-
 static int8_t connect_id, unpair_id, pair_id;
 
 static int8_t passkey_digits_left;
@@ -53,8 +51,6 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	int rc;
 	char addr[BT_ADDR_LE_STR_LEN];
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-
-	advertising_active = false;
 
 	if (err) {
 		LOG_ERR("Failed to connect to %s (%u)", log_strdup(addr), err);
@@ -179,8 +175,6 @@ static const struct bt_data ad_data[] = {
  */
 static void stop_adv(struct k_work *)
 {
-	advertising_active = false;
-
 	int err = bt_le_adv_stop();
 	if (err) {
 		LOG_ERR("Failed to stop advertising (err %d)", err);
@@ -233,8 +227,6 @@ static void start_directed_adv(struct k_work *)
 		return;
 	}
 
-	advertising_active = true;
-
 	LOG_INF("Started directed advertising");
 }
 
@@ -264,8 +256,6 @@ static void start_pairing_adv(struct k_work *)
 		return;
 	}
 
-	advertising_active = true;
-
 	k_delayed_work_submit(&stop_adv_work, K_SECONDS(180));
 
 	LOG_INF("Started pairing advertising");
@@ -291,8 +281,6 @@ static void disconnect_conn(struct bt_conn *conn, void *)
 
 static void disconnect(struct k_work *work)
 {
-	advertising_active = false;
-
 	int err = bt_le_adv_stop();
 	if (err) {
 		LOG_ERR("Failed to stop advertising (err %d)", err);
@@ -310,21 +298,13 @@ static void unpair(struct k_work *work)
 	}
 }
 
-bool quazi_ble_is_active(void) {
-	return quazi_ble_conn != NULL || advertising_active;
-}
-
 void quazi_ble_disconnect(void)
 {
-	LOG_DBG("");
-
 	k_work_submit(&disconnect_work);
 }
 
 void quazi_ble_connect(int identity)
 {
-	LOG_DBG("id %d", identity);
-
 	// check if already connected to same identity
 	if (quazi_ble_conn == NULL || identity != connect_id) {
 
@@ -334,15 +314,11 @@ void quazi_ble_connect(int identity)
 			k_work_submit(&disconnect_work);
 			k_work_submit(&start_directed_adv_work);
 		}
-
-		// TODO longer lower duty cycle advertisement after dir adv
 	}
 }
 
 void quazi_ble_pair(int identity)
 {
-	LOG_DBG("id %d", identity);
-
 	pair_id = identity;
 
 	if (!k_work_pending(&start_pairing_adv_work)) {
@@ -353,8 +329,6 @@ void quazi_ble_pair(int identity)
 
 void quazi_ble_unpair(int identity)
 {
-	LOG_DBG("id %d", identity);
-
 	unpair_id = identity;
 
 	if (!k_work_pending(&unpair_work)) {
@@ -384,8 +358,6 @@ void quazi_ble_init(void)
 	k_work_init(&start_pairing_adv_work, start_pairing_adv);
 	k_work_init(&disconnect_work, disconnect);
 	k_work_init(&unpair_work, unpair);
-
-	advertising_active = false;
 
 	int err = bt_enable(NULL);
 	if (err) {

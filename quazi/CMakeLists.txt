@@ -7,9 +7,10 @@ target_sources(quazi PRIVATE
 	src/hid_leds.c
 	src/hog.c
 	src/idle.c
+	src/main.c
 	src/matrix_scan.c
 	src/profile.c
-	src/quazi.c
+	src/shell.c
 )
 
 target_include_directories(glue PRIVATE
@@ -34,6 +35,5 @@ target_include_directories(qmk PUBLIC
 )
 
 target_sources(app PRIVATE
-	src/main.c
-	src/shell.c
+	main_stub.c
 )
