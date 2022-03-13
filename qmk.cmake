@@ -5,6 +5,7 @@ target_include_directories(qmk PUBLIC
 )
 
 target_sources(qmk PRIVATE
+	quantum/bitwise.c
 	quantum/keycode_config.c
 	quantum/keymap_common.c
 	quantum/led.c
@@ -18,6 +19,7 @@ target_sources(qmk PRIVATE
 
 target_include_directories(qmk PUBLIC
 	tmk_core/common
+	tmk_core/common/zephyr
 )
 
 target_sources(qmk PRIVATE
@@ -28,10 +30,8 @@ target_sources(qmk PRIVATE
 	tmk_core/common/action_macro.c
 	tmk_core/common/action_layer.c
 	tmk_core/common/action_util.c
-	tmk_core/common/print.c
 	tmk_core/common/debug.c
 	tmk_core/common/sendchar_null.c
-	tmk_core/common/util.c
 	tmk_core/common/report.c
 	tmk_core/common/magic.c
 	tmk_core/common/eeconfig.c

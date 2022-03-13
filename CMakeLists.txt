@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.13.1)
 
+set_property(GLOBAL PROPERTY CSTD gnu11)
+
 set(CMAKE_C_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "Flags used by the C compiler during DEBUG builds.")
 set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -O0" CACHE STRING "Flags used by the CXX compiler during DEBUG builds.")
 
@@ -55,5 +57,4 @@ target_link_libraries(qmk PRIVATE glue)
 target_link_libraries(quazi PRIVATE glue)
 target_link_libraries(app PRIVATE quazi qmk)
 
-add_definitions(-Dxprintf=printf -Dprint=printf)
 add_definitions(-DMATRIX_ROWS=5 -DMATRIX_COLS=14)
