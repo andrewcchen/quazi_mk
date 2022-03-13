@@ -45,6 +45,14 @@ static struct k_work start_pairing_adv_work;
 static struct k_work disconnect_work;
 static struct k_work unpair_work;
 
+#include "matrix_scan.h"
+#include "quazi.h"
+static void enter_idle(void)
+{
+	quazi_main_loop_stop();
+	quazi_matrix_scan_enter_idle();
+}
+
 static void connected(struct bt_conn *conn, uint8_t err)
 {
 	int rc;
@@ -53,6 +61,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 	if (err) {
 		LOG_ERR("Failed to connect to %s (%u)", log_strdup(addr), err);
+		enter_idle();
 		return;
 	}
 
@@ -91,6 +100,8 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 	if (reason == BT_HCI_ERR_CONN_TIMEOUT) {
 		k_work_submit(&start_directed_adv_work);
+	} else {
+		enter_idle();
 	}
 }
 

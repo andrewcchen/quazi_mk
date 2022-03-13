@@ -46,6 +46,7 @@ void quazi_main_loop_stop(void)
 {
 	LOG_INF("main loop stop");
 	k_timer_stop(&main_timer);
+	k_work_cancel(&main_work);
 }
 
 void quazi_main(void)
