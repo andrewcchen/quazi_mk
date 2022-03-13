@@ -13,7 +13,6 @@ target_include_directories(qmk PUBLIC
 target_sources(qmk PRIVATE
 	quantum/action.c
 	quantum/action_layer.c
-	quantum/action_macro.c
 	quantum/action_tapping.c
 	quantum/action_util.c
 	quantum/bitwise.c

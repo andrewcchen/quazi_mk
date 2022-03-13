@@ -47,7 +47,6 @@ message.mk
 nix
 nose2.cfg
 paths.mk
-platforms
 requirements-dev.txt
 requirements.txt
 secrets.tar.enc
