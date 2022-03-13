@@ -1,9 +1,13 @@
 target_include_directories(qmk PUBLIC
+	platforms
+	platforms/zephyr
 	quantum
+	quantum/audio
 	quantum/bootmagic
 	quantum/logging
 	quantum/process_keycode
 	quantum/sequencer
+	tmk_core/protocol
 )
 
 target_sources(qmk PRIVATE
@@ -24,16 +28,8 @@ target_sources(qmk PRIVATE
 	quantum/process_keycode/process_magic.c
 	quantum/process_keycode/process_space_cadet.c
 	quantum/quantum.c
-)
-
-target_include_directories(qmk PUBLIC
-	tmk_core/common
-	tmk_core/common/zephyr
-)
-
-target_sources(qmk PRIVATE
-	tmk_core/common/host.c
-	tmk_core/common/report.c
+	tmk_core/protocol/host.c
+	tmk_core/protocol/report.c
 )
 
 target_include_directories(qmk PUBLIC

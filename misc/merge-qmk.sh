@@ -29,6 +29,7 @@ build_json.mk
 build_keyboard.mk
 build_layout.mk
 build_test.mk
+builddefs
 common.mk
 common_features.mk
 data
@@ -45,6 +46,7 @@ lib/vusb
 message.mk
 nix
 nose2.cfg
+paths.mk
 platforms
 requirements-dev.txt
 requirements.txt
