@@ -41,7 +41,7 @@ static bool advertising_active;
 static int8_t passkey_digits_left;
 static int passkey_entered;
 
-static struct k_delayed_work stop_adv_work;
+static struct k_work_delayable stop_adv_work;
 static struct k_work start_directed_adv_work;
 static struct k_work start_pairing_adv_work;
 static struct k_work disconnect_work;
@@ -63,7 +63,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 	do_adv_stop();
 
-	k_delayed_work_cancel(&stop_adv_work);
+	k_work_cancel_delayable(&stop_adv_work);
 
 	char addr[BT_ADDR_LE_STR_LEN];
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
@@ -263,7 +263,7 @@ static void start_pairing_adv(struct k_work *)
 		return;
 	}
 
-	k_delayed_work_submit(&stop_adv_work, K_SECONDS(180));
+	k_work_schedule(&stop_adv_work, K_SECONDS(180));
 
 	advertising_active = true;
 
@@ -274,8 +274,8 @@ static void disconnect_conn(struct bt_conn *conn, void *)
 {
 	bt_conn_ref(conn);
 
-	bt_addr_t *addr = bt_conn_get_dst(conn);
-	if (bt_addr_cmp(addr, BT_ADDR_LE_NONE)) {
+	const bt_addr_le_t *addr = bt_conn_get_dst(conn);
+	if (bt_addr_le_cmp(addr, BT_ADDR_LE_NONE)) {
 
 		int err = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
 		if (err) {
@@ -311,7 +311,7 @@ void quazi_ble_connect(int identity)
 
 		connect_id = identity;
 
-		if (!k_work_pending(&start_directed_adv_work)) {
+		if (!k_work_is_pending(&start_directed_adv_work)) {
 			k_work_submit(&disconnect_work);
 			k_work_submit(&start_directed_adv_work);
 		}
@@ -327,7 +327,7 @@ void quazi_ble_pair(int identity)
 {
 	pair_id = identity;
 
-	if (!k_work_pending(&start_pairing_adv_work)) {
+	if (!k_work_is_pending(&start_pairing_adv_work)) {
 		k_work_submit(&disconnect_work);
 		k_work_submit(&start_pairing_adv_work);
 	}
@@ -337,7 +337,7 @@ void quazi_ble_unpair(int identity)
 {
 	unpair_id = identity;
 
-	if (!k_work_pending(&unpair_work)) {
+	if (!k_work_is_pending(&unpair_work)) {
 		k_work_submit(&disconnect_work);
 		k_work_submit(&unpair_work);
 	}
@@ -357,13 +357,13 @@ void quazi_ble_passkey_digit(int digit)
 	}
 }
 
-void quazi_ble_is_active(void) {
+bool quazi_ble_is_active(void) {
 	return quazi_ble_conn != NULL || advertising_active;
 }
 
 void quazi_ble_init(void)
 {
-	k_delayed_work_init(&stop_adv_work, stop_adv);
+	k_work_init_delayable(&stop_adv_work, stop_adv);
 	k_work_init(&start_directed_adv_work, start_directed_adv);
 	k_work_init(&start_pairing_adv_work, start_pairing_adv);
 	k_work_init(&disconnect_work, disconnect);

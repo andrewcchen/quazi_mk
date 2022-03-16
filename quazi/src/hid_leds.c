@@ -22,16 +22,16 @@
 #define SCROLL_NODE DT_CHOSEN(quazi_scroll_lock_led)
 
 #if HAS_NUM
-static struct device *num_dev;
-static int *num_pin;
+static const struct device *num_dev;
+static int num_pin;
 #endif
 #if HAS_CAPS
-static struct device *caps_dev;
-static int *caps_pin;
+static const struct device *caps_dev;
+static int caps_pin;
 #endif
 #if HAS_SCROLL
-static struct device *scroll_dev;
-static int *scroll_pin;
+static const struct device *scroll_dev;
+static int scroll_pin;
 #endif
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);

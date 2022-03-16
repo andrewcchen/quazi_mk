@@ -134,6 +134,8 @@ static ssize_t write_led_report(struct bt_conn *conn,
 	}
 
 	led_report = ((uint8_t *)buf)[0];
+
+	return len;
 }
 
 static ssize_t write_ctrl_point(struct bt_conn *conn,
