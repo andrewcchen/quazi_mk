@@ -24,17 +24,22 @@ enum idle_level {
 	IDLE_SLEEP,
 };
 
-static enum idle_level current_idle_level;
+static struct k_work_delayable enter_idle_work;
+static struct k_work leave_idle_work;
 
-static void enter_idle(enum idle_level level)
+static enum idle_level current_idle_level, next_idle_level;
+
+static void enter_idle(struct k_work *)
 {
+	enum idle_level level = next_idle_level;
+
 	LOG_INF("entering idle level %d", level);
 
 	current_idle_level = level;
 
 	if (level >= IDLE_MATRIX) {
-		quazi_matrix_scan_enter_idle();
 		quazi_main_loop_stop();
+		quazi_matrix_scan_enter_idle();
 	}
 	if (level >= IDLE_DISCONN) {
 		quazi_profile_enter_idle();
@@ -42,42 +47,58 @@ static void enter_idle(enum idle_level level)
 	if (level >= IDLE_SLEEP) {
 		// TODO
 	}
+
+	if (level == IDLE_MATRIX) {
+		next_idle_level = IDLE_DISCONN;
+		k_work_reschedule(&enter_idle_work, K_SECONDS(10));
+	}
+}
+
+static void leave_idle(struct k_work *)
+{
+	enum idle_level level = current_idle_level;
+
+	current_idle_level = IDLE_NONE;
+
+	LOG_INF("leaving idle");
+
+	if (level >= IDLE_MATRIX) {
+		// matrix_scan internally calls quazi_matrix_scan_leave_idle
+		quazi_main_loop_start();
+	}
+	if (level >= IDLE_DISCONN) {
+		quazi_profile_leave_idle();
+	}
+	// profile checks internally to reconnect on key press
 }
 
 void quazi_idle_leave(void)
 {
-	LOG_INF("leaving idle");
-
-	if (current_idle_level >= IDLE_MATRIX) {
-		quazi_profile_leave_idle();
-		quazi_matrix_scan_leave_idle();
-		quazi_main_loop_start();
-	}
-
-	current_idle_level = IDLE_NONE;
+	k_work_submit(&leave_idle_work);
 }
 
-/** Check how long we have been idle and possibly enter idle state
+/** Main loop task
+ *
+ * Check how long we have been idle and possibly enter idle state
  *
  * Call after qmk task in main loop
  */
-bool quazi_idle_check(void)
+void quazi_idle_check(bool key_down)
 {
-	static uint32_t last_key_act_time;
-
-	uint32_t time = k_uptime_get_32();
-
-	bool key_down = quazi_matrix_scan_key_down;
-	quazi_matrix_scan_key_down = false;
-
-	if (!key_down) {
-		if (time - last_key_act_time > 1000) {
-			enter_idle(IDLE_MATRIX);
-			return true;
+	if (key_down) {
+		if (current_idle_level != IDLE_NONE) {
+			k_work_submit(&leave_idle_work);
 		}
-	} else {
-		last_key_act_time = time;
+		next_idle_level = IDLE_MATRIX;
+		k_work_reschedule(&enter_idle_work, K_SECONDS(1));
 	}
+}
 
-	return false;
+void quazi_idle_init(void)
+{
+	k_work_init_delayable(&enter_idle_work, enter_idle);
+	k_work_init(&leave_idle_work, leave_idle);
+
+	next_idle_level = IDLE_DISCONN;
+	k_work_schedule(&enter_idle_work, K_MSEC(100));
 }

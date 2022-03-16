@@ -36,6 +36,7 @@ LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 struct bt_conn *quazi_ble_conn;
 
 static int8_t connect_id, unpair_id, pair_id;
+static bool advertising_active;
 
 static int8_t passkey_digits_left;
 static int passkey_entered;
@@ -46,9 +47,24 @@ static struct k_work start_pairing_adv_work;
 static struct k_work disconnect_work;
 static struct k_work unpair_work;
 
+
+static void do_adv_stop(void) {
+	advertising_active = false;
+
+	int err = bt_le_adv_stop();
+	if (err) {
+		LOG_ERR("Failed to stop advertising (err %d)", err);
+	}
+}
+
 static void connected(struct bt_conn *conn, uint8_t err)
 {
 	int rc;
+
+	do_adv_stop();
+
+	k_delayed_work_cancel(&stop_adv_work);
+
 	char addr[BT_ADDR_LE_STR_LEN];
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
@@ -57,22 +73,15 @@ static void connected(struct bt_conn *conn, uint8_t err)
 		return;
 	}
 
-	k_delayed_work_cancel(&stop_adv_work);
+	bt_conn_ref(conn);
+	quazi_ble_conn = conn;
 
-	rc = bt_le_adv_stop();
-	if (rc) {
-		LOG_ERR("Failed to stop advertising (err %d)", rc);
-	}
-
-	rc = bt_conn_set_security(conn, BT_SECURITY_L2);
+	rc = bt_conn_set_security(conn, BT_SECURITY_L4);
 	if (rc) {
 		LOG_ERR("Failed to set security (err %d)", rc);
 	}
 
 	// TODO update connection parameters
-
-	bt_conn_ref(conn);
-	quazi_ble_conn = conn;
 
 	LOG_INF("Connected %s", log_strdup(addr));
 }
@@ -175,11 +184,7 @@ static const struct bt_data ad_data[] = {
  */
 static void stop_adv(struct k_work *)
 {
-	int err = bt_le_adv_stop();
-	if (err) {
-		LOG_ERR("Failed to stop advertising (err %d)", err);
-		return;
-	}
+	do_adv_stop();
 
 	LOG_INF("Stopped advertising");
 }
@@ -227,6 +232,8 @@ static void start_directed_adv(struct k_work *)
 		return;
 	}
 
+	advertising_active = true;
+
 	LOG_INF("Started directed advertising");
 }
 
@@ -258,6 +265,8 @@ static void start_pairing_adv(struct k_work *)
 
 	k_delayed_work_submit(&stop_adv_work, K_SECONDS(180));
 
+	advertising_active = true;
+
 	LOG_INF("Started pairing advertising");
 }
 
@@ -281,11 +290,7 @@ static void disconnect_conn(struct bt_conn *conn, void *)
 
 static void disconnect(struct k_work *work)
 {
-	int err = bt_le_adv_stop();
-	if (err) {
-		LOG_ERR("Failed to stop advertising (err %d)", err);
-		return;
-	}
+	do_adv_stop();
 
 	bt_conn_foreach(BT_CONN_TYPE_ALL, disconnect_conn, NULL);
 }
@@ -298,10 +303,6 @@ static void unpair(struct k_work *work)
 	}
 }
 
-void quazi_ble_disconnect(void)
-{
-	k_work_submit(&disconnect_work);
-}
 
 void quazi_ble_connect(int identity)
 {
@@ -315,6 +316,11 @@ void quazi_ble_connect(int identity)
 			k_work_submit(&start_directed_adv_work);
 		}
 	}
+}
+
+void quazi_ble_disconnect(void)
+{
+	k_work_submit(&disconnect_work);
 }
 
 void quazi_ble_pair(int identity)
@@ -351,6 +357,10 @@ void quazi_ble_passkey_digit(int digit)
 	}
 }
 
+void quazi_ble_is_active(void) {
+	return quazi_ble_conn != NULL || advertising_active;
+}
+
 void quazi_ble_init(void)
 {
 	k_delayed_work_init(&stop_adv_work, stop_adv);
@@ -358,6 +368,8 @@ void quazi_ble_init(void)
 	k_work_init(&start_pairing_adv_work, start_pairing_adv);
 	k_work_init(&disconnect_work, disconnect);
 	k_work_init(&unpair_work, unpair);
+
+	advertising_active = false;
 
 	int err = bt_enable(NULL);
 	if (err) {

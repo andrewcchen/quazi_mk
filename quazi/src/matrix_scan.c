@@ -33,15 +33,23 @@ static gpio_pin_t col_pin[MATRIX_COLS] =
 
 static const gpio_flags_t row_flags[MATRIX_ROWS] =
 	{ UTIL_LISTIFY(MATRIX_ROWS, MATRIX_GPIO_FLAGS_LIST, row) };
-static const gpio_flags_t col_flags[MATRIX_COLS] = 
+static const gpio_flags_t col_flags[MATRIX_COLS] =
 	{ UTIL_LISTIFY(MATRIX_COLS, MATRIX_GPIO_FLAGS_LIST, col) };
+
 
 bool quazi_matrix_scan_key_down;
 
+static struct k_work idle_leave_work;
+
+static void idle_leave(struct k_work *)
+{
+	quazi_idle_leave();
+}
 
 static void gpio_callback(const struct device *, struct gpio_callback *, uint32_t)
 {
-	quazi_idle_leave();
+	quazi_matrix_scan_leave_idle();
+	k_work_submit(&idle_leave_work);
 }
 
 void quazi_matrix_scan_init(void)
@@ -70,6 +78,8 @@ void quazi_matrix_scan_init(void)
 
 		if (ret < 0) LOG_ERR("matrix pin configure failed: %d", ret);
 	}
+
+	k_work_init(&idle_leave_work, idle_leave);
 
 	// TODO optimize
 	static struct gpio_callback cb_data[MATRIX_COLS];

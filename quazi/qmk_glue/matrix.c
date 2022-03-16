@@ -19,7 +19,7 @@ static uint32_t matrix[MATRIX_ROWS];
 
 void matrix_init(void)
 {
-	quazi_matrix_scan_init();
+	// quazi_matrix_scan_init is called by quazi_main
 }
 
 uint8_t matrix_scan(void)

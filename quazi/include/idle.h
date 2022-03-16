@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-bool quazi_idle_check(void);
+void quazi_idle_check(bool key_down);
 
 void quazi_idle_leave(void);
+
+void quazi_idle_init(void);

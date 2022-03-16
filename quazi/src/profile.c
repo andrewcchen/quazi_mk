@@ -20,8 +20,7 @@
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
-#define UNSELECTED -1
-static uint8_t selected_profile = UNSELECTED;
+static uint8_t selected_profile = 1;
 
 static int settings_set(const char *name, size_t len,
 		settings_read_cb read_cb, void *cb_arg)
@@ -78,10 +77,6 @@ void quazi_profile_init(void)
 			LOG_ERR("Could not create identity %d (err %d)", i, rc);
 		}
 	}
-
-	if (selected_profile != UNSELECTED) {
-		quazi_profile_connect();
-	}
 };
 
 /** Select profile
@@ -109,6 +104,13 @@ void quazi_profile_connect(void)
 	quazi_ble_connect(selected_profile);
 }
 
+/** Disconnect from paired host for selected profile
+ */
+void quazi_profile_disconnect(void)
+{
+	quazi_ble_disconnect();
+}
+
 /** Start pairing for selected profile
  */
 void quazi_profile_pair(void)
@@ -125,10 +127,21 @@ void quazi_profile_clear(void)
 
 void quazi_profile_enter_idle(void)
 {
-	quazi_ble_disconnect();
+	quazi_profile_disconnect();
 }
 
 void quazi_profile_leave_idle(void)
 {
 	quazi_profile_connect();
+}
+
+/** Main loop task
+ */
+void quazi_profile_task(bool key_down)
+{
+	if (key_down) {
+		if (!quazi_ble_is_active()) {
+			quazi_profile_connect();
+		}
+	}
 }
