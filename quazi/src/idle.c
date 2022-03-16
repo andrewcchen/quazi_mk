@@ -99,6 +99,6 @@ void quazi_idle_init(void)
 	k_work_init_delayable(&enter_idle_work, enter_idle);
 	k_work_init(&leave_idle_work, leave_idle);
 
-	next_idle_level = IDLE_DISCONN;
+	current_idle_level = next_idle_level = IDLE_DISCONN;
 	k_work_schedule(&enter_idle_work, K_MSEC(100));
 }

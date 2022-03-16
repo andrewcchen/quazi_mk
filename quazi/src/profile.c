@@ -134,14 +134,3 @@ void quazi_profile_leave_idle(void)
 {
 	quazi_profile_connect();
 }
-
-/** Main loop task
- */
-void quazi_profile_task(bool key_down)
-{
-	if (key_down) {
-		if (!quazi_ble_is_active()) {
-			quazi_profile_connect();
-		}
-	}
-}

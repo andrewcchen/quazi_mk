@@ -39,8 +39,6 @@ static void quazi_main_task(struct k_work *)
 
 	quazi_qmk_task();
 
-	quazi_profile_task(quazi_matrix_scan_key_down);
-
 	quazi_idle_check(quazi_matrix_scan_key_down);
 }
 
