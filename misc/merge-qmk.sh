@@ -38,11 +38,6 @@ docs
 doxygen-todo
 keyboards
 layouts/community
-lib/arm_atsam
-lib/chibios
-lib/chibios-contrib
-lib/lufa
-lib/vusb
 message.mk
 nix
 nose2.cfg
@@ -62,12 +57,12 @@ util
 # QMK files we overwrote
 overwrite_files=(
 .gitignore
+lib
 readme.md
 )
 
 # QMK files we want to keep
 restore_files=(
-drivers
 )
 
 for f in ${remove_files[@]}; do
