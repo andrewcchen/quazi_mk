@@ -61,22 +61,14 @@ lib
 readme.md
 )
 
-# QMK files we want to keep
-restore_files=(
-)
-
 for f in ${remove_files[@]}; do
 	git rm -rf $f
 done
 
 for f in ${overwrite_files[@]}; do
+	git restore --staged --ignore-unmerged $f
 	git restore --ours $f
-	git add $f
-done
-
-for f in ${restore_files[@]}; do
-	git restore --theirs $f
-	git add $f
+	git clean -f -- $f
 done
 
 exit 0
