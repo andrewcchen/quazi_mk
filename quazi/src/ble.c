@@ -221,9 +221,9 @@ static void start_directed_adv(struct k_work *)
 			0, 0, addr);
 	adv_param.id = connect_id;
 
-	if (IS_ENABLED(CONFIG_BT_WHITELIST)) {
-		bt_le_whitelist_clear();
-		bt_le_whitelist_add(addr);
+	if (IS_ENABLED(CONFIG_BT_FILTER_filter_accept_LIST)) {
+		bt_le_filter_accept_list_clear();
+		bt_le_filter_accept_list_add(addr);
 	}
 
 	int err = bt_le_adv_start(&adv_param, ad_data, ARRAY_SIZE(ad_data), NULL, 0);
@@ -253,8 +253,8 @@ static void start_pairing_adv(struct k_work *)
 			0x20, 0x30, NULL);
 	adv_param.id = pair_id;
 
-	if (IS_ENABLED(CONFIG_BT_WHITELIST)) {
-		bt_le_whitelist_clear();
+	if (IS_ENABLED(CONFIG_BT_FILTER_filter_accept_LIST)) {
+		bt_le_filter_accept_list_clear();
 	}
 
 	int err = bt_le_adv_start(&adv_param, ad_data, ARRAY_SIZE(ad_data), NULL, 0);

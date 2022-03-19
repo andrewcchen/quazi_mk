@@ -24,9 +24,9 @@ list(APPEND BOARD_ROOT ${CMAKE_SOURCE_DIR})
 list(APPEND DTS_ROOT ${CMAKE_SOURCE_DIR}/quazi)
 
 list(APPEND ZEPHYR_MODULES
-	${CMAKE_SOURCE_DIR}/lib/cmsis
-	${CMAKE_SOURCE_DIR}/lib/tinycrypt
-	${CMAKE_SOURCE_DIR}/lib/hal_nordic
+	${CMAKE_SOURCE_DIR}/lib/zephyr_modules/cmsis
+	${CMAKE_SOURCE_DIR}/lib/zephyr_modules/tinycrypt
+	${CMAKE_SOURCE_DIR}/lib/zephyr_modules/hal_nordic
 )
 
 list(APPEND CONF_FILE ${CMAKE_SOURCE_DIR}/quazi/prj.conf)

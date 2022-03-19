@@ -1,10 +1,12 @@
-[submodule "lib/ugfx"]
-	path = lib/ugfx
-	url = https://github.com/qmk/uGFX
-	branch = master
-[submodule "lib/googletest"]
-	path = lib/googletest
-	url = https://github.com/qmk/googletest
-[submodule "lib/printf"]
-	path = lib/printf
-	url = https://github.com/qmk/printf
+[submodule "lib/zephyr"]
+	path = lib/zephyr
+	url = https://github.com/zephyrproject-rtos/zephyr.git
+[submodule "lib/zephyr_modules/cmsis"]
+	path = lib/zephyr_modules/cmsis
+	url = https://github.com/zephyrproject-rtos/cmsis.git
+[submodule "lib/zephyr_modules/tinycrypt"]
+	path = lib/zephyr_modules/tinycrypt
+	url = https://github.com/zephyrproject-rtos/tinycrypt.git
+[submodule "lib/zephyr_modules/hal_nordic"]
+	path = lib/zephyr_modules/hal_nordic
+	url = https://github.com/zephyrproject-rtos/hal_nordic.git
