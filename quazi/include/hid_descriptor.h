@@ -44,6 +44,7 @@ const static uint8_t hid_report_descriptor[] = {
 0x91, 0x03,        //   Output (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
 0xC0,              // End Collection
 
+#ifdef EXTRAKEY_ENABLE
 0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
 0x09, 0x80,        // Usage (Sys Control)
 0xA1, 0x01,        // Collection (Application)
@@ -69,4 +70,5 @@ const static uint8_t hid_report_descriptor[] = {
 0x75, 0x10,        //   Report Size (16)
 0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
 0xC0,              // End Collection
+#endif
 };

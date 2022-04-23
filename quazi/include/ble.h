@@ -7,6 +7,7 @@
 #pragma once
 
 extern struct bt_conn *quazi_ble_conn;
+extern bool quazi_ble_link_established;
 
 void quazi_ble_init(void);
 

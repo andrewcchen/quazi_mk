@@ -34,6 +34,8 @@ LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
 /// Handle for current connection, NULL if disconnected
 struct bt_conn *quazi_ble_conn;
+// An encrypted link has been established, ready to send notifications to
+bool quazi_ble_link_established;
 
 static int8_t connect_id, unpair_id, pair_id;
 static bool advertising_active;
@@ -99,6 +101,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 	bt_conn_unref(conn);
 	quazi_ble_conn = NULL;
+	quazi_ble_link_established = false;
 
 	if (reason == BT_HCI_ERR_CONN_TIMEOUT) {
 		k_work_submit(&start_directed_adv_work);
@@ -113,6 +116,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
 
 	if (!err) {
 		LOG_INF("Security changed: %s level %u", log_strdup(addr), level);
+		quazi_ble_link_established = true;
 	} else {
 		LOG_ERR("Security failed: %s level %u (err %d)", log_strdup(addr), level, err);
 		bt_conn_disconnect(conn, BT_HCI_ERR_AUTH_FAIL);
@@ -205,6 +209,7 @@ static void start_directed_adv(struct k_work *)
 	if (quazi_ble_conn != NULL) {
 		bt_conn_unref(quazi_ble_conn);
 		quazi_ble_conn = NULL;
+		quazi_ble_link_established = false;
 	}
 
 	bt_addr_le_t _addr, *addr = &_addr;
@@ -246,6 +251,7 @@ static void start_pairing_adv(struct k_work *)
 	if (quazi_ble_conn != NULL) {
 		bt_conn_unref(quazi_ble_conn);
 		quazi_ble_conn = NULL;
+		quazi_ble_link_established = false;
 	}
 
 	struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(

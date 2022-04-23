@@ -67,3 +67,4 @@ target_link_libraries(app PRIVATE
 	-Wl,--no-whole-archive)
 
 add_definitions(-DMATRIX_ROWS=5 -DMATRIX_COLS=14)
+add_definitions(-DEXTRAKEY_ENABLE=1)

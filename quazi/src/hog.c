@@ -69,11 +69,14 @@ static struct report_chrc_desc led_chrc_desc = {
 	.type = HIDS_OUTPUT,
 };
 
+#ifdef MOUSEKEY_ENABLE
 static struct report_chrc_desc mouse_chrc_desc = {
 	.id = REPORT_ID_MOUSE,
 	.type = HIDS_INPUT,
 };
+#endif
 
+#ifdef EXTRAKEY_ENABLE
 static struct report_chrc_desc system_chrc_desc = {
 	.id = REPORT_ID_SYSTEM,
 	.type = HIDS_INPUT,
@@ -83,6 +86,7 @@ static struct report_chrc_desc consumer_chrc_desc = {
 	.id = REPORT_ID_CONSUMER,
 	.type = HIDS_INPUT,
 };
+#endif
 
 static uint8_t keyboard_report[8];
 static uint8_t led_report;
@@ -109,11 +113,6 @@ static ssize_t read_report_chrc_desc(struct bt_conn *conn,
 {
 	return bt_gatt_attr_read(conn, attr, buf, len, offset,
 			attr->user_data, sizeof(struct report_chrc_desc));
-}
-
-static void input_ccc_changed(const struct bt_gatt_attr *attr, uint16_t value)
-{
-	LOG_DBG("%d", value);
 }
 
 static ssize_t read_keyboard_report(struct bt_conn *conn,
@@ -148,6 +147,18 @@ static ssize_t write_ctrl_point(struct bt_conn *conn,
 	return len;
 }
 
+// Token variables whose address we put in the user_data field of the report
+// characteristic attribute structs. Then init can iterate over all the
+// attributes and find the report characterstics
+static char keyboard_attr_token;
+#ifdef MOUSEKEY_ENABLE
+static char mouse_attr_token;
+#endif
+#ifdef EXTRAKEY_ENABLE
+static char system_attr_token;
+static char consumer_attr_token;
+#endif
+
 /* HID Service Declaration */
 BT_GATT_SERVICE_DEFINE(hog_svc,
 	BT_GATT_PRIMARY_SERVICE(BT_UUID_HIDS),
@@ -161,17 +172,36 @@ BT_GATT_SERVICE_DEFINE(hog_svc,
 	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT,
 			BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
 			BT_GATT_PERM_READ_ENCRYPT,
-			read_keyboard_report, NULL, NULL),
+			read_keyboard_report, NULL, &keyboard_attr_token),
 	BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 	BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ,
 			read_report_chrc_desc, NULL, &keyboard_chrc_desc),
 
 	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT,
-			BT_GATT_CHRC_WRITE, BT_GATT_PERM_WRITE_ENCRYPT,
+			BT_GATT_CHRC_WRITE,
+			BT_GATT_PERM_WRITE_ENCRYPT,
 			NULL, write_led_report, NULL),
 	BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 	BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ,
 			read_report_chrc_desc, NULL, &led_chrc_desc),
+
+#ifdef EXTRAKEY_ENABLE
+	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT,
+			BT_GATT_CHRC_NOTIFY,
+			BT_GATT_PERM_NONE,
+			NULL, NULL, &system_attr_token),
+	BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ,
+			read_report_chrc_desc, NULL, &system_chrc_desc),
+
+	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_REPORT,
+			BT_GATT_CHRC_NOTIFY,
+			BT_GATT_PERM_NONE,
+			NULL, NULL, &consumer_attr_token),
+	BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+	BT_GATT_DESCRIPTOR(BT_UUID_HIDS_REPORT_REF, BT_GATT_PERM_READ,
+			read_report_chrc_desc, NULL, &consumer_chrc_desc),
+#endif
 
 	BT_GATT_CHARACTERISTIC(BT_UUID_HIDS_CTRL_POINT,
 			BT_GATT_CHRC_WRITE_WITHOUT_RESP,
@@ -179,10 +209,14 @@ BT_GATT_SERVICE_DEFINE(hog_svc,
 			NULL, write_ctrl_point, NULL),
 );
 
-static const struct bt_gatt_attr *keyboard_report_attr;
+static const struct bt_gatt_attr *keyboard_attr;
+#ifdef MOUSEKEY_ENABLE
 static const struct bt_gatt_attr *mouse_attr;
+#endif
+#ifdef EXTRAKEY_ENABLE
 static const struct bt_gatt_attr *system_attr;
 static const struct bt_gatt_attr *consumer_attr;
+#endif
 
 uint8_t quazi_hog_keyboard_leds(void)
 {
@@ -192,8 +226,8 @@ uint8_t quazi_hog_keyboard_leds(void)
 void quazi_hog_send_keyboard(uint8_t *report)
 {
 	memcpy(keyboard_report, report, sizeof(keyboard_report));
-	if (quazi_ble_conn) {
-		int err = bt_gatt_notify(quazi_ble_conn, keyboard_report_attr, report, 8);
+	if (quazi_ble_link_established) {
+		int err = bt_gatt_notify(quazi_ble_conn, keyboard_attr, report, 8);
 		if (err) {
 			LOG_WRN("bt_gatt_notify failed (%d)", err);
 		}
@@ -202,21 +236,52 @@ void quazi_hog_send_keyboard(uint8_t *report)
 
 void quazi_hog_send_mouse(uint8_t *report)
 {
+#ifdef MOUSEKEY_ENABLE
+#endif
 }
 
 void quazi_hog_send_system(uint16_t data)
 {
+#ifdef EXTRAKEY_ENABLE
+	if (quazi_ble_link_established) {
+		int err = bt_gatt_notify(quazi_ble_conn, system_attr, &data, 2);
+		if (err) {
+			LOG_WRN("bt_gatt_notify failed (%d)", err);
+		}
+	}
+#endif
 }
 
 void quazi_hog_send_consumer(uint16_t data)
 {
+#ifdef EXTRAKEY_ENABLE
+	if (quazi_ble_link_established) {
+		int err = bt_gatt_notify(quazi_ble_conn, consumer_attr, &data, 2);
+		if (err) {
+			LOG_WRN("bt_gatt_notify failed (%d)", err);
+		}
+	}
+#endif
 }
 
 void quazi_hog_init(void)
 {
 	for (int i = 0; i < ARRAY_SIZE(attr_hog_svc); i++) {
 
-		if (attr_hog_svc[i].read == read_keyboard_report)
-			keyboard_report_attr = &attr_hog_svc[i];
+		if (attr_hog_svc[i].user_data == &keyboard_attr_token)
+			keyboard_attr = &attr_hog_svc[i];
+
+#ifdef MOUSEKEY_ENABLE
+		if (attr_hog_svc[i].user_data == &mouse_attr_token)
+			mouse_attr = &attr_hog_svc[i];
+#endif
+
+#ifdef EXTRAKEY_ENABLE
+		if (attr_hog_svc[i].user_data == &system_attr_token)
+			system_attr = &attr_hog_svc[i];
+
+		if (attr_hog_svc[i].user_data == &consumer_attr_token)
+			consumer_attr = &attr_hog_svc[i];
+#endif
 	}
 }
