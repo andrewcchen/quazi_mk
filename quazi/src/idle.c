@@ -50,7 +50,7 @@ static void enter_idle(struct k_work *)
 
 	if (level == IDLE_MATRIX) {
 		next_idle_level = IDLE_DISCONN;
-		k_work_reschedule(&enter_idle_work, K_SECONDS(10));
+		k_work_reschedule(&enter_idle_work, K_MINUTES(5));
 	}
 }
 
