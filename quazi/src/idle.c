@@ -17,13 +17,6 @@
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
 
-enum idle_level {
-	IDLE_NONE,
-	IDLE_MATRIX,
-	IDLE_DISCONN,
-	IDLE_SLEEP,
-};
-
 static struct k_work_delayable enter_idle_work;
 static struct k_work leave_idle_work;
 
@@ -70,6 +63,14 @@ static void leave_idle(struct k_work *)
 		quazi_profile_leave_idle();
 	}
 	// profile checks internally to reconnect on key press
+}
+
+void quazi_idle_enter(enum idle_level level)
+{
+	if (level < current_idle_level)
+		return;
+	next_idle_level = level;
+	k_work_reschedule(&enter_idle_work, K_NO_WAIT);
 }
 
 void quazi_idle_leave(void)

@@ -28,6 +28,7 @@
 #include <logging/log.h>
 
 #include "hog.h"
+#include "idle.h"
 #include "profile.h"
 
 LOG_MODULE_DECLARE(quazi, CONFIG_QUAZI_LOG_LEVEL);
@@ -72,6 +73,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 
 	if (err) {
 		LOG_ERR("Failed to connect to %s (%u)", log_strdup(addr), err);
+		quazi_idle_enter(IDLE_DISCONN);
 		return;
 	}
 
@@ -105,6 +107,8 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 	if (reason == BT_HCI_ERR_CONN_TIMEOUT) {
 		k_work_submit(&start_directed_adv_work);
+	} else {
+		quazi_idle_enter(IDLE_DISCONN);
 	}
 }
 
