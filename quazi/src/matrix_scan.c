@@ -112,7 +112,7 @@ void quazi_matrix_scan_enter_idle(void)
 		gpio_pin_set(row_port[i], row_pin[i], 1);
 	}
 	for (int i = 0; i < MATRIX_COLS; i++) {
-		int ret = gpio_pin_interrupt_configure(col_port[i], col_pin[i], GPIO_INT_EDGE_RISING);
+		int ret = gpio_pin_interrupt_configure(col_port[i], col_pin[i], GPIO_INT_LEVEL_HIGH);
 
 		if (ret < 0) LOG_ERR("matrix pin interrupt configure failed: %d", ret);
 	}
