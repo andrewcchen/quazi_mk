@@ -92,6 +92,10 @@ void quazi_idle_check(bool key_down)
 		}
 		next_idle_level = IDLE_MATRIX;
 		k_work_reschedule(&enter_idle_work, K_SECONDS(1));
+
+	} else if (!quazi_ble_is_active()) {
+		next_idle_level = IDLE_DISCONN;
+		k_work_reschedule(&enter_idle_work, K_NO_WAIT);
 	}
 }
 
